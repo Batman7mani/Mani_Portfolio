@@ -120,6 +120,8 @@ export function Portfolio() {
 
       <section className="skills section-pad"><Reveal><div className="section-heading"><p className="eyebrow">04 / Toolkit</p><p className="section-note">Always learning / never finished</p></div></Reveal><div className="skill-cloud">{skills.map((skill, index) => <span key={skill} className={index % 4 === 0 ? 'skill-accent' : ''}>{skill}</span>)}</div></section>
 
+      <div className="toolkit-footer-transition" aria-hidden="true"><span>MAKE SOMETHING WORTH REMEMBERING</span></div>
+
       <section className="contact section-pad" id="contact"><div className="contact-main"><Reveal><p className="eyebrow">05 / Start a conversation</p><div className="contact-title-row"><h2>Have a good<br /><em>problem?</em></h2><PixelBye /></div><a className="contact-email" href={`mailto:${profile.email}`}>{profile.email}<ArrowUpRight size={24} /></a></Reveal></div><div className="footer-links"><span>© 2026 Mettu Mani Chandhan Sai</span><div><a href={`tel:${profile.phone}`}><Phone size={15} /> WhatsApp <span>{profile.phone}</span></a><a href={`mailto:${profile.email}`}><Mail size={15} /> Email</a><a href={profile.instagram} target="_blank" rel="noreferrer"><Camera size={15} /> Instagram</a><a href={profile.github} target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={15} /></a><a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={15} /></a></div></div><Reveal className="footer-signature-reveal"><div className="footer-signature" aria-label="M slash MC portfolio mark"><span className="footer-signature-black">M</span><span className="footer-signature-yellow">M</span><span className="footer-signature-black">C</span></div></Reveal></section>
 
     </main>
