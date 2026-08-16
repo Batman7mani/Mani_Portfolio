@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, Camera, Mail, Phone } from 'lucide-react'
+import { ArrowUpRight, Camera, Mail, Phone } from 'lucide-react'
 import { profile, projects, skills } from '@/lib/portfolio-data'
 import { experiences } from '@/lib/experience-data'
 import { HeroScene, IntroCurtain, PixelBye } from '@/components/motion-layer'
@@ -58,7 +58,6 @@ export function Portfolio() {
           <Reveal><p className="eyebrow">Hello, I&apos;m Mani <span className="status-dot" /> Chennai / India</p></Reveal>
           <Reveal className="delay-1"><h1 className="cursor-highlight">Building digital<br /><em>systems</em> with intent.</h1></Reveal>
           <Reveal className="delay-2"><p className="hero-intro">Frontend engineer, cyber security student, and technical storyteller. I turn complex products into clear, tactile experiences.</p></Reveal>
-          <Reveal className="delay-3"><a className="circle-link" href="/resume.pdf" target="_blank" rel="noreferrer" aria-label="Open resume PDF"><ArrowDownRight size={25} /></a><span className="circle-link-caption">Resume / HR</span></Reveal>
         </div>
         <div className="hero-art" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); setTilt({ x: ((event.clientY - rect.top) / rect.height - .5) * -12, y: ((event.clientX - rect.left) / rect.width - .5) * 12 }) }} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
           <div className="hero-orbit orbit-one" />
@@ -119,6 +118,8 @@ export function Portfolio() {
       </div>
 
       <section className="skills section-pad"><Reveal><div className="section-heading"><p className="eyebrow">04 / Toolkit</p><p className="section-note">Always learning / never finished</p></div></Reveal><div className="skill-cloud">{skills.map((skill, index) => <span key={skill} className={index % 4 === 0 ? 'skill-accent' : ''}>{skill}</span>)}</div></section>
+
+      <div className="toolkit-footer-transition" aria-hidden="true"><span>MAKE SOMETHING WORTH REMEMBERING</span></div>
 
       <section className="contact section-pad" id="contact"><div className="contact-main"><Reveal><p className="eyebrow">05 / Start a conversation</p><div className="contact-title-row"><h2>Have a good<br /><em>problem?</em></h2><PixelBye /></div><a className="contact-email" href={`mailto:${profile.email}`}>{profile.email}<ArrowUpRight size={24} /></a></Reveal></div><div className="footer-links"><span>© 2026 Mettu Mani Chandhan Sai</span><div><a href={`tel:${profile.phone}`}><Phone size={15} /> WhatsApp <span>{profile.phone}</span></a><a href={`mailto:${profile.email}`}><Mail size={15} /> Email</a><a href={profile.instagram} target="_blank" rel="noreferrer"><Camera size={15} /> Instagram</a><a href={profile.github} target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={15} /></a><a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight size={15} /></a></div></div><Reveal className="footer-signature-reveal"><div className="footer-signature" aria-label="M slash MC portfolio mark"><span className="footer-signature-black">M</span><span className="footer-signature-yellow">M</span><span className="footer-signature-black">C</span></div></Reveal></section>
 
