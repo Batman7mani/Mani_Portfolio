@@ -14,7 +14,7 @@ export default function ResumePage() {
           <h1>Mettu Mani Chandhan Sai</h1>
           <p className="resume-role">Frontend Engineer · Cyber Security Student · Technical Storyteller</p>
         </div>
-        <a className="back-link" href="/">Back to portfolio ↗</a>
+        <div className="resume-actions"><a className="back-link" href="/resume.pdf" target="_blank" rel="noreferrer">Open PDF ↗</a><a className="back-link" href="/">Back to portfolio ↗</a></div>
       </header>
 
       <section className="resume-contact" aria-label="Contact information">

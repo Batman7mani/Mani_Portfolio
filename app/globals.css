@@ -83,7 +83,8 @@ em { font-family: Georgia, serif; font-weight: 400; }
 .resume-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; padding-bottom: 42px; border-bottom: 1px solid var(--ink); }
 .resume-header h1 { margin-bottom: 12px; font-size: clamp(42px, 7vw, 88px); line-height: .92; }
 .resume-role { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
-.resume-header .back-link { flex: none; margin-top: 10px; font: 11px monospace; letter-spacing: .08em; text-transform: uppercase; }
+.resume-actions { display: flex; flex-wrap: wrap; gap: 18px; flex: none; margin-top: 10px; }
+.resume-header .back-link { font: 11px monospace; letter-spacing: .08em; text-transform: uppercase; }
 .resume-contact { display: flex; flex-wrap: wrap; gap: 10px 28px; padding: 18px 0 64px; color: var(--muted); font: 11px monospace; }
 .resume-contact a { color: var(--ink); }
 .resume-section { display: grid; grid-template-columns: minmax(110px, .25fr) 1fr; gap: 32px; padding: 28px 0; border-top: 1px solid var(--line); }
@@ -98,7 +99,7 @@ em { font-family: Georgia, serif; font-weight: 400; }
 .resume-item li::marker { color: var(--yellow); }
 .resume-item .resume-tools { margin: 0; color: var(--ink); font: 11px monospace; }
 .resume-skills p { max-width: 680px; margin: 0; line-height: 1.7; }
-@media (max-width: 700px) { .resume-page { padding-top: 38px; } .resume-header { display: block; } .resume-header .back-link { display: inline-block; margin-top: 28px; } .resume-section { display: block; } .resume-section > .eyebrow { margin-bottom: 18px; } .resume-item-meta { display: block; } .resume-item-meta span { display: block; margin-bottom: 5px; } }
+@media (max-width: 700px) { .resume-page { padding-top: 38px; } .resume-header { display: block; } .resume-actions { margin-top: 28px; } .resume-header .back-link { display: inline-block; } .resume-section { display: block; } .resume-section > .eyebrow { margin-bottom: 18px; } .resume-item-meta { display: block; } .resume-item-meta span { display: block; margin-bottom: 5px; } }
 
 @keyframes transition-drop { 0%, 100% { transform: translateY(-3px); opacity: .45; } 50% { transform: translateY(5px); opacity: 1; } }
 @keyframes toolkit-slide { to { transform: translateX(-33.333%); } }
