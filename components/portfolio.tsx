@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, Camera, Mail, Phone } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Camera, Mail, Phone } from 'lucide-react'
 import { profile, projects, skills } from '@/lib/portfolio-data'
 import { experiences } from '@/lib/experience-data'
 import { HeroScene, IntroCurtain, PixelBye } from '@/components/motion-layer'
@@ -58,6 +58,7 @@ export function Portfolio() {
           <Reveal><p className="eyebrow">Hello, I&apos;m Mani <span className="status-dot" /> Chennai / India</p></Reveal>
           <Reveal className="delay-1"><h1 className="cursor-highlight">Building digital<br /><em>systems</em> with intent.</h1></Reveal>
           <Reveal className="delay-2"><p className="hero-intro">Frontend engineer, cyber security student, and technical storyteller. I turn complex products into clear, tactile experiences.</p></Reveal>
+          <Reveal className="delay-3"><a className="circle-link" href="/resume.pdf" target="_blank" rel="noreferrer" aria-label="Open resume PDF"><ArrowDownRight size={25} /></a><span className="circle-link-caption">Resume / HR</span></Reveal>
         </div>
         <div className="hero-art" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); setTilt({ x: ((event.clientY - rect.top) / rect.height - .5) * -12, y: ((event.clientX - rect.left) / rect.width - .5) * 12 }) }} onMouseLeave={() => setTilt({ x: 0, y: 0 })}>
           <div className="hero-orbit orbit-one" />
