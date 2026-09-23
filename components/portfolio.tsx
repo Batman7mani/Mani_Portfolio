@@ -7,6 +7,55 @@ import { profile, projects, skills } from '@/lib/portfolio-data'
 import { experiences } from '@/lib/experience-data'
 import { HeroScene, IntroCurtain, PixelBye } from '@/components/motion-layer'
 
+function CurvedProcess({ items }: { items: { step: string; title: string; detail: string }[] }) {
+  const [progress, setProgress] = useState(0)
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const pathLength = 1100
+
+  useEffect(() => {
+    const update = () => {
+      const section = sectionRef.current
+      if (!section) return
+      const rect = section.getBoundingClientRect()
+      const travel = window.innerHeight * 0.72
+      setProgress(Math.max(0, Math.min(1, (travel - rect.top) / (rect.height + travel - window.innerHeight))))
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => { window.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
+  }, [])
+
+  return <div ref={sectionRef} className="curved-process" style={{ '--timeline-progress': progress } as React.CSSProperties}><svg className="curved-process-path" viewBox="0 0 900 420" preserveAspectRatio="none" aria-hidden="true"><defs><marker id="timeline-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs><path className="curved-process-track" d="M40 60 C 250 60, 170 190, 390 190 S 540 320, 860 350" /><path className="curved-process-trace" pathLength="1100" d="M40 60 C 250 60, 170 190, 390 190 S 540 320, 860 350" markerEnd="url(#timeline-arrow)" style={{ strokeDashoffset: pathLength * (1 - progress) }} /></svg>{items.map((item, index) => { const active = progress >= index / items.length; return <article data-index={index} className={`curved-process-item curve-${index} ${active ? 'is-visible' : ''}`} key={item.step}><span className="curved-process-number">{item.step}</span><div><p className="eyebrow">Chapter {item.step}</p><h3>{item.title}</h3><p>{item.detail}</p></div></article> })}</div>
+}
+
+function ScrollCursor() {
+  const [position, setPosition] = useState({ x: -80, y: -80 })
+  const [progress, setProgress] = useState(0)
+  const raf = useRef<number | null>(null)
+  const target = useRef({ x: -80, y: -80 })
+
+  useEffect(() => {
+    const move = (event: MouseEvent) => { target.current = { x: event.clientX, y: event.clientY } }
+    const scroll = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      setProgress(max > 0 ? window.scrollY / max : 0)
+    }
+    const animate = () => {
+      setPosition((current) => ({ x: current.x + (target.current.x - current.x) * 0.16, y: current.y + (target.current.y - current.y) * 0.16 }))
+      raf.current = requestAnimationFrame(animate)
+    }
+    window.addEventListener('mousemove', move, { passive: true })
+    window.addEventListener('scroll', scroll, { passive: true })
+    scroll(); animate()
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('scroll', scroll); if (raf.current) cancelAnimationFrame(raf.current) }
+  }, [])
+
+  const radius = 21
+  const circumference = 2 * Math.PI * radius
+  return <div className="global-cursor" style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }} aria-hidden="true"><svg viewBox="0 0 52 52"><circle className="global-cursor-track" cx="26" cy="26" r={radius} /><circle className="global-cursor-progress" cx="26" cy="26" r={radius} style={{ strokeDasharray: circumference, strokeDashoffset: circumference * (1 - progress) }} /></svg><span /></div>
+}
+
 function Reveal({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const [visible, setVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -51,6 +100,7 @@ export function Portfolio() {
 
   return (
     <main>
+      <ScrollCursor />
       <IntroCurtain />
       <div className="scroll-progress" style={{ transform: `scaleX(${progress})` }} aria-hidden="true" />
       <section className="hero section-pad" id="top">
@@ -130,6 +180,17 @@ export function Portfolio() {
 
 export function ProjectDetail({ slug }: { slug: string }) {
   const project = projects.find((item) => item.slug === slug)
+  const [detailTab, setDetailTab] = useState<'overview' | 'stack' | 'process'>('overview')
+  const [activeLanguage, setActiveLanguage] = useState<string | null>(null)
+  const [pointer, setPointer] = useState({ x: 50, y: 50 })
   if (!project) return null
-  return <main className="project-detail"><header className="site-header"><Link href="/" className="wordmark">M/MC<span>.</span></Link><Link href="/" className="back-link">← Back to index</Link></header><section className={`detail-hero ${project.color} section-pad`}><div className="detail-visual"><img src={project.image} alt={project.imageAlt} /></div><div className="detail-hero-copy"><p className="eyebrow">Project {project.index} / {project.eyebrow}</p><h1 className="cursor-highlight">{project.title}</h1><p className="detail-summary">{project.summary}</p><div className="detail-shape" /></div></section><section className="detail-intro section-pad"><p className="eyebrow">A closer look</p><p className="detail-lede">Every project starts with a <span>specific tension</span> — then turns it into something people can feel, use, and remember.</p></section><section className="detail-idea section-pad"><p className="eyebrow">The idea</p><p className="detail-description cursor-highlight">{project.description}</p></section><section className="detail-content section-pad"><div className="detail-built"><p className="eyebrow">Built with</p><ul>{project.stack.map((item) => <li key={item}>{item}</li>)}</ul></div><div className="detail-side"><p className="eyebrow metrics-label">Impact</p>{project.metrics.map((metric) => <strong key={metric}>{metric}</strong>)}</div></section><section className="detail-proof section-pad"><p className="eyebrow">What mattered</p><div className="detail-proof-grid">{project.metrics.map((metric, index) => <div className="proof-item" key={metric}><span>0{index + 1}</span><strong>{metric}</strong><p>{index === 0 ? 'A clear path through the product, without asking the audience to work for it.' : index === 1 ? 'The interface gives the central idea room to become useful, memorable, and immediate.' : 'Designed to leave a measurable impression long after the first interaction.'}</p></div>)}</div></section><footer className="detail-footer section-pad"><Link href="/">← All projects</Link><div className="detail-footer-actions"><a href={project.url} target="_blank" rel="noreferrer">Open project site <ArrowUpRight size={18} /></a><a href={profile.github} target="_blank" rel="noreferrer">More on GitHub <ArrowUpRight size={18} /></a></div></footer></main>
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    setPointer({ x: ((event.clientX - rect.left) / rect.width) * 100, y: ((event.clientY - rect.top) / rect.height) * 100 })
+  }
+  const languages = project.languages ?? project.stack.map((name, index) => ({ name, percent: [62, 21, 11, 6][index] ?? 5, lines: `${Math.round(1200 / (index + 1))} lines`, color: ['#ff4f9a', '#18d9e8', '#b4ff39', '#f5cf3e'][index] ?? '#f5cf3e' }))
+  const process = project.process ?? [{ step: '01', title: 'Find the friction', detail: 'Understand who this is for and what should feel easier.' }, { step: '02', title: 'Shape the system', detail: 'Turn the idea into an interface with rhythm, hierarchy, and intent.' }, { step: '03', title: 'Make it click', detail: 'Polish the details until the experience feels inevitable.' }]
+  const currentIndex = projects.findIndex((item) => item.slug === project.slug)
+  const nextProject = projects[(currentIndex + 1) % projects.length]
+  return <main className="project-detail" onPointerMove={handlePointerMove} onClick={(event) => { const target = event.target as HTMLElement; if (target.closest('a,button')) return; const audio = document.querySelector<HTMLAudioElement>('#project-soundtrack'); audio?.play().catch(() => undefined) }} style={{ '--pointer-x': `${pointer.x}%`, '--pointer-y': `${pointer.y}%` } as React.CSSProperties}><ScrollCursor /><header className="site-header detail-header"><Link href="/" className="wordmark">M/MC<span>.</span></Link><div className="detail-header-meta"><span>Case study / {project.index}</span><Link href="/" className="back-link">Close project ×</Link></div></header><section className={`detail-hero ${project.color} section-pad`}><div className="detail-hero-grid"><div className="detail-hero-copy"><p className="eyebrow">Selected project / {project.eyebrow}</p><h1>{project.title}</h1><p className="detail-summary">{project.summary}</p><div className="detail-hero-actions"><a href={project.url} target="_blank" rel="noreferrer">Open live site <ArrowUpRight size={18} /></a><a href={project.github ?? 'https://github.com/Batman7mani'} target="_blank" rel="noreferrer">View source <ArrowUpRight size={18} /></a></div></div><div className="detail-visual-wrap"><div className="detail-visual"><img src={project.image} alt={project.imageAlt} /></div><span className="detail-orbit-label">Move your cursor<br />through the project</span></div></div><div className="detail-hero-footer"><span>{project.index} — {project.title}</span><span>Scroll to explore ↓</span><span>Designed + developed by Mettu Mani</span></div></section><section className="detail-intro section-pad"><p className="eyebrow">01 / The brief</p><p className="detail-lede">{project.description}</p><div className="detail-intro-note"><span>Built for</span><strong>{project.audience ?? 'People who value clear, thoughtful digital experiences.'}</strong></div></section><section className="detail-explorer section-pad"><div className="detail-scroll-label"><span>02 / Inside the build</span><span>Scroll to reveal ↓</span></div><audio id="project-soundtrack" src="/penguinmusic-future-abstract.mp3" preload="none" loop aria-label="Project soundtrack" /><Link className="next-project" href={`/projects/${nextProject.slug}`}><span>Next project / {nextProject.index}</span><strong>{nextProject.title}</strong><span className="next-project-arrow">↘</span></Link><div className="detail-tabs detail-tabs-hidden" role="tablist" aria-label="Project details">{(['overview', 'stack', 'process'] as const).map((tab) => <button key={tab} role="tab" aria-selected={detailTab === tab} className={detailTab === tab ? 'is-active' : ''} onClick={() => setDetailTab(tab)}>{tab}</button>)}</div>{<div className="detail-content"><div className="detail-built"><p className="eyebrow">Built for</p><p className="detail-audience">{project.audience ?? 'People who value clear, thoughtful digital experiences.'}</p></div><div className="detail-side"><p className="eyebrow metrics-label">Impact</p>{project.metrics.map((metric) => <strong key={metric}>{metric}</strong>)}</div></div>}{<div className="detail-stack"><div className="detail-ring"><span>{languages.reduce((total, language) => total + Number.parseInt(language.lines), 0)}<small> lines of code</small></span></div><div className="detail-language-list">{languages.map((language) => <div className={`detail-language-row ${activeLanguage === language.name ? 'is-active' : ''}`} key={language.name} onMouseEnter={() => setActiveLanguage(language.name)} onMouseLeave={() => setActiveLanguage(null)}><i style={{ background: language.color }} /><strong>{language.name}</strong><span>{language.lines}</span><b>{language.percent}%</b><em style={{ width: `${language.percent}%`, background: language.color }} /></div>)}</div></div>}{<div className="detail-timeline"><CurvedProcess items={process} /></div>}</section><section className="detail-proof section-pad"><p className="eyebrow">What mattered</p><div className="detail-proof-grid">{project.metrics.map((metric, index) => <div className="proof-item" key={metric}><span>0{index + 1}</span><strong>{metric}</strong><p>{index === 0 ? 'A clear path through the product, without asking the audience to work for it.' : index === 1 ? 'The interface gives the central idea room to become useful, memorable, and immediate.' : 'Designed to leave a measurable impression long after the first interaction.'}</p></div>)}</div></section><footer className="detail-footer section-pad"><Link href="/">← All projects</Link><div className="detail-footer-actions"><a href={project.url} target="_blank" rel="noreferrer">Open project site <ArrowUpRight size={18} /></a><a href={profile.github} target="_blank" rel="noreferrer">More on GitHub <ArrowUpRight size={18} /></a></div></footer></main>
 }

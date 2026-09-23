@@ -11,6 +11,10 @@ export type Project = {
   image: string
   imageAlt: string
   url: string
+  github?: string
+  audience?: string
+  languages?: { name: string; percent: number; lines: string; color: string }[]
+  process?: { step: string; title: string; detail: string }[]
 }
 
 export const projects: Project[] = [

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './motion.css';
+@import './project-showcase.css';
 
 :root {
   --ivory: #f4f0e6;
@@ -9,6 +10,10 @@
   --line: #d9d2c3;
   --yellow: #f5cf3e;
   --sand: #ded8ca;
+  --pink: #ff4f9a;
+  --cyan: #18d9e8;
+  --lime: #b4ff39;
+  --shadow: #11100f;
 }
 
 * { box-sizing: border-box; }
@@ -186,3 +191,11 @@ html { scroll-behavior: smooth; }
 @media (max-width: 760px) { .about-work-transition { min-height: 88px; }.about-work-transition::before, .work-experience-transition::before { left: -30%; right: -30%; bottom: -70px; height: 125px; }.about-work-transition__line { width: 28px; }.about-work-transition__label, .work-experience-transition__label { font-size: 8px; padding: 7px 9px; }.work-experience-transition { min-height: 98px; }.experience-toolkit-transition { height: 86px; transform: skewY(-4deg); }.experience-toolkit-transition__track { font-size: 30px; gap: 24px; }.experience-toolkit-transition__track span::after { margin-left: 24px; }.experience-toolkit-transition__marker { right: 20px; bottom: 12px; font-size: 9px; } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Detail page layout overrides */
+.project-detail .detail-hero { display:flex !important; grid-template-columns:none !important; }
+.project-detail .detail-hero-grid { display:grid !important; width:100% !important; grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; }
+.project-detail .detail-hero-copy { width:100% !important; max-width:650px !important; }
+.project-detail .detail-visual-wrap { position:relative !important; width:100% !important; }
+.project-detail .detail-visual { position:relative !important; inset:auto !important; width:100% !important; height:auto !important; }
+@media (max-width:760px) { .project-detail .detail-hero-grid { grid-template-columns:1fr !important; } }
