@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './motion.css';
+@import './project-showcase.css';
 
 :root {
   --ivory: #f4f0e6;
@@ -9,6 +10,10 @@
   --line: #d9d2c3;
   --yellow: #f5cf3e;
   --sand: #ded8ca;
+  --pink: #ff4f9a;
+  --cyan: #18d9e8;
+  --lime: #b4ff39;
+  --shadow: #11100f;
 }
 
 * { box-sizing: border-box; }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, Camera, Mail, Phone } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Camera, ExternalLink, GitBranch, Mail, Phone } from 'lucide-react'
 import { profile, projects, skills } from '@/lib/portfolio-data'
 import { experiences } from '@/lib/experience-data'
 import { HeroScene, IntroCurtain, PixelBye } from '@/components/motion-layer'
@@ -38,6 +38,7 @@ const hobbyCards = [
 export function Portfolio() {
   const [progress, setProgress] = useState(0)
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const [projectTab, setProjectTab] = useState<'overview' | 'stack' | 'process'>('overview')
 
   useEffect(() => {
     const onScroll = () => {
@@ -99,7 +100,8 @@ export function Portfolio() {
 
       <section className="work section-pad" id="work">
         <Reveal><div className="section-heading"><p className="eyebrow">02 / Selected work</p><span className="section-note">Click a project to enter →</span></div></Reveal>
-        <div className="project-list">{projects.map((project) => <Reveal key={project.slug}><Link href={`/projects/${project.slug}`} className={`project-row ${project.color}`}><div className="project-image"><img src={project.image} alt={project.imageAlt} loading="lazy" /></div><span className="project-number">{project.index}</span><div className="project-row-copy"><p className="eyebrow">{project.eyebrow}</p><h3 className="cursor-highlight">{project.title}</h3><p className="project-summary">{project.summary}</p><div className="project-metrics">{project.metrics.slice(0, 2).map((metric) => <span key={metric}>{metric}</span>)}</div></div><ArrowUpRight className="project-arrow" size={28} /></Link></Reveal>)}</div>
+        <div className="project-tabs" role="tablist" aria-label="Project views">{(['overview', 'stack', 'process'] as const).map((tab) => <button key={tab} role="tab" aria-selected={projectTab === tab} className={projectTab === tab ? 'is-active' : ''} onClick={() => setProjectTab(tab)}>{tab}</button>)}</div>
+        <div className="project-list">{projects.map((project) => { const languages = project.languages ?? project.stack.slice(0, 4).map((name, index) => ({ name, percent: [62, 21, 11, 6][index] ?? 5, lines: `${Math.round(1200 / (index + 1))} lines`, color: ['#ff4f9a', '#18d9e8', '#b4ff39', '#f5cf3e'][index] ?? '#f5cf3e' })); return <Reveal key={project.slug}><article className={`project-card ${project.color}`}><div className="project-card-top"><span className="project-number">{project.index}</span><p className="eyebrow">{project.eyebrow}</p><span className="project-audience">For {project.audience ?? 'curious people'}</span></div><div className="project-card-grid"><Link href={`/projects/${project.slug}`} className="project-image"><img src={project.image} alt={project.imageAlt} loading="lazy" /><span className="project-image-prompt">Enter case study <ArrowUpRight size={18} /></span></Link><div className="project-row-copy"><h3 className="cursor-highlight">{project.title}</h3>{projectTab === 'overview' && <p className="project-summary">{project.summary}</p>}{projectTab === 'stack' && <div className="project-language-list">{languages.map((language) => <div className="language-row" key={language.name} style={{ '--language-color': language.color, '--language-width': `${language.percent}%` } as React.CSSProperties}><span className="language-swatch" /><strong>{language.name}</strong><span>{language.lines}</span><b>{language.percent}%</b></div>)}</div>}{projectTab === 'process' && <div className="project-process"><span>01 →</span><p>Find the friction. Shape a clear path. Ship the moment that makes it click.</p></div>}<div className="project-metrics">{project.metrics.map((metric) => <span key={metric}>{metric}</span>)}</div><div className="project-actions"><a href={project.github ?? 'https://github.com/Batman7mani'} target="_blank" rel="noreferrer">View code <GitBranch size={15} /></a><a href={project.url} target="_blank" rel="noreferrer">Live demo <ExternalLink size={15} /></a></div></div></div></article></Reveal> })}</div>
       </section>
 
       <div className="work-experience-transition" aria-hidden="true">
