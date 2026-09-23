@@ -8,14 +8,25 @@ import { experiences } from '@/lib/experience-data'
 import { HeroScene, IntroCurtain, PixelBye } from '@/components/motion-layer'
 
 function CurvedProcess({ items }: { items: { step: string; title: string; detail: string }[] }) {
-  const [visible, setVisible] = useState<number[]>([])
-  const refs = useRef<(HTMLElement | null)[]>([])
+  const [progress, setProgress] = useState(0)
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const pathLength = 1100
+
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) { const index = Number((entry.target as HTMLElement).dataset.index); setVisible((current) => current.includes(index) ? current : [...current, index]) } }), { threshold: 0.35 })
-    refs.current.forEach((node) => node && observer.observe(node))
-    return () => observer.disconnect()
+    const update = () => {
+      const section = sectionRef.current
+      if (!section) return
+      const rect = section.getBoundingClientRect()
+      const travel = window.innerHeight * 0.72
+      setProgress(Math.max(0, Math.min(1, (travel - rect.top) / (rect.height + travel - window.innerHeight))))
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => { window.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
   }, [])
-  return <div className="curved-process"><svg className="curved-process-path" viewBox="0 0 900 420" preserveAspectRatio="none" aria-hidden="true"><path d="M40 60 C 250 60, 170 190, 390 190 S 540 320, 860 350" /></svg>{items.map((item, index) => <article ref={(node) => { refs.current[index] = node }} data-index={index} className={`curved-process-item curve-${index} ${visible.includes(index) ? 'is-visible' : ''}`} key={item.step}><span className="curved-process-number">{item.step}</span><div><p className="eyebrow">Chapter {item.step}</p><h3>{item.title}</h3><p>{item.detail}</p></div></article>)}</div>
+
+  return <div ref={sectionRef} className="curved-process" style={{ '--timeline-progress': progress } as React.CSSProperties}><svg className="curved-process-path" viewBox="0 0 900 420" preserveAspectRatio="none" aria-hidden="true"><defs><marker id="timeline-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs><path className="curved-process-track" d="M40 60 C 250 60, 170 190, 390 190 S 540 320, 860 350" /><path className="curved-process-trace" pathLength="1100" d="M40 60 C 250 60, 170 190, 390 190 S 540 320, 860 350" markerEnd="url(#timeline-arrow)" style={{ strokeDashoffset: pathLength * (1 - progress) }} /></svg>{items.map((item, index) => { const active = progress >= index / items.length; return <article data-index={index} className={`curved-process-item curve-${index} ${active ? 'is-visible' : ''}`} key={item.step}><span className="curved-process-number">{item.step}</span><div><p className="eyebrow">Chapter {item.step}</p><h3>{item.title}</h3><p>{item.detail}</p></div></article> })}</div>
 }
 
 function ScrollCursor() {
