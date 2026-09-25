@@ -93,6 +93,11 @@ function ProcessSection({ project }: { project: Project }) {
   return <section className="case-study-process" aria-labelledby="process-title"><div className="case-study-section-label"><span id="process-title">Working process</span><span>04 / 05</span></div><div className="case-study-process__grid">{process.map((item) => <article data-case-stagger key={item.step}><span>{item.step}</span><h3>{item.title}</h3><p>{item.detail}</p></article>)}</div></section>
 }
 
+function TrailStatement({ text }: { text: string }) {
+  const words = text.split(/\s+/)
+  return <p className="case-study-statement__text" aria-label={text}><span aria-hidden="true">{words.map((word, index) => <span className="case-study-statement-word" key={`${word}-${index}`}>{word}{index < words.length - 1 ? ' ' : ''}</span>)}</span></p>
+}
+
 export function ProjectDetail({ slug }: { slug: string }) {
   const project = getProject(slug)
   const root = useRef<HTMLElement | null>(null)
@@ -164,6 +169,9 @@ export function ProjectDetail({ slug }: { slug: string }) {
       const statement = root.current?.querySelector<HTMLElement>('.case-study-statement p')
       if (fullMotion && statement) {
         gsap.fromTo(statement, { xPercent: -5, autoAlpha: 0.25 }, { xPercent: 0, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: statement, start: 'top bottom', end: 'top 38%', scrub: 1 } })
+        const words = gsap.utils.toArray<HTMLElement>('.case-study-statement-word')
+        gsap.set(words, { color: 'var(--paper)' })
+        gsap.to(words, { color: 'var(--case-accent)', stagger: 0.045, ease: 'none', scrollTrigger: { trigger: statement, start: 'top 76%', end: 'bottom 42%', scrub: 1 } })
       }
       if (fullMotion) {
         gsap.utils.toArray<HTMLElement>('[data-case-stagger]').forEach((element) => {
@@ -225,7 +233,7 @@ export function ProjectDetail({ slug }: { slug: string }) {
       <div className="case-study-hero__visual" data-case-reveal><div className="case-study-image-frame"><img data-case-media src={project.image} alt={project.imageAlt} /></div><span className="case-study-image-note">{project.title} / interface study</span><span className="case-study-hero__stamp">Scroll<br />to enter</span></div>
       <div className="case-study-hero__footer"><span>Case study / {project.index}</span><MoveDownRight size={17} /><span>Continuous interaction</span></div>
     </section>
-    <section className="case-study-statement" data-case-section><div className="case-study-section-label"><span>Project statement</span><span>01 / 05</span></div><p>{project.description}</p></section>
+    <section className="case-study-statement" data-case-section><div className="case-study-section-label"><span>Project statement</span><span>01 / 05</span></div><TrailStatement text={project.description} /></section>
     <ProjectFacts project={project} />
     <LanguageComposition project={project} />
     <ProcessSection project={project} />

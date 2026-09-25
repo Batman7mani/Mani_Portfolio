@@ -208,14 +208,14 @@ html { scroll-behavior: smooth; }
 .case-study-header { position: absolute; inset: 0 0 auto; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 28px clamp(20px, 5vw, 72px); color: var(--ink); }
 .case-study-header__meta, .case-study-close { display: flex; align-items: center; gap: 24px; font: 10px monospace; letter-spacing: .12em; text-transform: uppercase; }
 .case-study-close { gap: 7px; border-bottom: 1px solid var(--ink); padding-bottom: 4px; }
-.case-study-hero { position: relative; display: grid; grid-template-columns: minmax(0, .9fr) minmax(320px, 1.1fr); align-items: center; gap: clamp(32px, 8vw, 120px); min-height: 100svh; padding: 130px clamp(20px, 8vw, 120px) 32px; background: radial-gradient(circle at var(--pointer-x) var(--pointer-y), color-mix(in srgb, var(--case-accent) 17%, transparent), transparent 32rem), var(--paper); border-bottom: 1px solid var(--ink); }
-.case-study-hero__copy { position: relative; z-index: 2; max-width: 700px; }
+.case-study-hero { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, .8fr) minmax(320px, 1.2fr); align-items: center; gap: clamp(34px, 7vw, 112px); min-height: 100svh; padding: 130px clamp(20px, 8vw, 120px) 32px; background: radial-gradient(circle at var(--pointer-x) var(--pointer-y), color-mix(in srgb, var(--case-accent) 17%, transparent), transparent 32rem), var(--paper); border-bottom: 1px solid var(--ink); }
+.case-study-hero__copy { position: relative; z-index: 2; min-width: 0; max-width: 610px; padding-right: clamp(0px, 2vw, 28px); }
 .case-study-kicker { margin: 0 0 25px; color: var(--muted); font: 10px monospace; letter-spacing: .16em; text-transform: uppercase; }
-.case-study-hero h1 { max-width: 650px; margin: 0 0 25px; font-size: clamp(86px, 15vw, 230px); line-height: .76; letter-spacing: -.105em; text-transform: uppercase; }
+.case-study-hero h1 { max-width: 100%; margin: 0 0 25px; font-size: clamp(76px, 11.5vw, 176px); line-height: .78; letter-spacing: -.095em; overflow-wrap: anywhere; text-wrap: balance; text-transform: uppercase; }
 .case-study-hero__descriptor { margin: 0 0 24px; font-size: clamp(17px, 2vw, 26px); letter-spacing: -.04em; }
 .case-study-hero__summary { max-width: 480px; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.45; }
 .case-study-hero__meta { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font: 10px monospace; letter-spacing: .09em; text-transform: uppercase; }
-.case-study-hero__visual { position: relative; align-self: center; }
+.case-study-hero__visual { position: relative; z-index: 1; min-width: 0; align-self: center; }
 .case-study-image-frame { position: relative; aspect-ratio: 1.18; overflow: hidden; border: 1px solid var(--ink); background: var(--ink); box-shadow: 18px 18px 0 var(--case-accent); transform: rotate(2deg); }
 .case-study-image-frame img { width: 100%; height: 115%; object-fit: cover; filter: saturate(.8) contrast(1.08); transform-origin: center; }
 .case-study-image-note { position: absolute; left: 16px; bottom: -34px; color: var(--muted); font: 10px monospace; letter-spacing: .1em; text-transform: uppercase; }
@@ -225,7 +225,8 @@ html { scroll-behavior: smooth; }
 .case-study-statement, .case-study-facts, .case-study-code, .case-study-process { padding: clamp(90px, 13vw, 190px) clamp(20px, 12vw, 180px); }
 .case-study-statement { background: var(--ink); color: var(--paper); }
 .case-study-statement .case-study-section-label { color: rgba(255,253,248,.6); }
-.case-study-statement p { max-width: 1250px; margin: 70px 0 0 -5px; font-size: clamp(44px, 8.5vw, 145px); line-height: .86; letter-spacing: -.095em; }
+.case-study-statement p { max-width: 1250px; margin: 70px 0 0 -5px; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(42px, 7.4vw, 126px); font-weight: 400; line-height: .92; letter-spacing: -.065em; }
+.case-study-statement-word { display: inline; color: var(--paper); }
 .case-study-statement p::first-letter { color: var(--case-accent); }
 .case-study-facts { background: var(--paper); }
 .case-study-facts__grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 52px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
