@@ -52,7 +52,7 @@ function ProjectFacts({ project }: { project: Project }) {
     <section className="case-study-facts" aria-labelledby="facts-title">
       <div className="case-study-section-label"><span id="facts-title">Project information</span><span>02 / 05</span></div>
       <div className="case-study-facts__grid">
-        {facts.map(([label, value]) => <div className="case-study-fact" key={label}><span>{label}</span><strong>{value}</strong></div>)}
+        {facts.map(([label, value]) => <div className="case-study-fact" data-case-stagger key={label}><span>{label}</span><strong>{value}</strong></div>)}
       </div>
     </section>
   )
@@ -73,7 +73,7 @@ function LanguageComposition({ project }: { project: Project }) {
       <div className="case-study-code__visual">
         <div className="case-study-code__total"><strong>{total.toLocaleString()}</strong><span>lines of code<br />across the build</span></div>
         <div className="case-study-language-list">
-          {languages.map((language) => <div className={`case-study-language ${active === language.name ? 'is-active' : ''}`} key={language.name} onMouseEnter={() => setActive(language.name)} onMouseLeave={() => setActive(null)} onFocus={() => setActive(language.name)} onBlur={() => setActive(null)} tabIndex={0} style={{ '--language-color': language.color, '--language-width': `${language.percent}%` } as React.CSSProperties}>
+          {languages.map((language) => <div className={`case-study-language ${active === language.name ? 'is-active' : ''}`} data-case-stagger key={language.name} onMouseEnter={() => setActive(language.name)} onMouseLeave={() => setActive(null)} onFocus={() => setActive(language.name)} onBlur={() => setActive(null)} tabIndex={0} style={{ '--language-color': language.color, '--language-width': `${language.percent}%` } as React.CSSProperties}>
             <i aria-hidden="true" /><strong>{language.name}</strong><span>{language.lines} lines</span><b>{language.percent}%</b><em aria-hidden="true" />
           </div>)}
         </div>
@@ -89,7 +89,7 @@ function ProcessSection({ project }: { project: Project }) {
     { step: '03', title: 'Make it click', detail: 'Polish the details until the experience feels inevitable.' },
   ]
 
-  return <section className="case-study-process" aria-labelledby="process-title"><div className="case-study-section-label"><span id="process-title">Working process</span><span>04 / 05</span></div><div className="case-study-process__grid">{process.map((item) => <article key={item.step}><span>{item.step}</span><h3>{item.title}</h3><p>{item.detail}</p></article>)}</div></section>
+  return <section className="case-study-process" aria-labelledby="process-title"><div className="case-study-section-label"><span id="process-title">Working process</span><span>04 / 05</span></div><div className="case-study-process__grid">{process.map((item) => <article data-case-stagger key={item.step}><span>{item.step}</span><h3>{item.title}</h3><p>{item.detail}</p></article>)}</div></section>
 }
 
 export function ProjectDetail({ slug }: { slug: string }) {
@@ -107,8 +107,27 @@ export function ProjectDetail({ slug }: { slug: string }) {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (reduced) return
       gsap.from('[data-case-reveal]', { y: 34, autoAlpha: 0, duration: 0.9, stagger: 0.07, ease: 'power3.out' })
+      const hero = root.current?.querySelector<HTMLElement>('.case-study-hero')
+      const heroCopy = root.current?.querySelector<HTMLElement>('.case-study-hero__copy')
+      const heroVisual = root.current?.querySelector<HTMLElement>('.case-study-hero__visual')
+      const heroFooter = root.current?.querySelector<HTMLElement>('.case-study-hero__footer')
+      if (hero && heroCopy && heroVisual && heroFooter) {
+        gsap.timeline({
+          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1 },
+        })
+          .to(heroCopy, { yPercent: -18, autoAlpha: 0.18, ease: 'none' }, 0)
+          .to(heroVisual, { yPercent: -8, rotate: -2, scale: 0.88, ease: 'none' }, 0)
+          .to(heroFooter, { y: 18, autoAlpha: 0, ease: 'none' }, 0.12)
+      }
       const media = root.current?.querySelector('[data-case-media]')
       if (media) gsap.to(media, { yPercent: -10, scale: 1.08, ease: 'none', scrollTrigger: { trigger: media, start: 'top bottom', end: 'bottom top', scrub: 1 } })
+      const statement = root.current?.querySelector<HTMLElement>('.case-study-statement p')
+      if (statement) {
+        gsap.fromTo(statement, { xPercent: -5, autoAlpha: 0.25 }, { xPercent: 0, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: statement, start: 'top bottom', end: 'top 38%', scrub: 1 } })
+      }
+      gsap.utils.toArray<HTMLElement>('[data-case-stagger]').forEach((element) => {
+        gsap.from(element, { y: 28, autoAlpha: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 88%', once: true } })
+      })
       gsap.utils.toArray<HTMLElement>('[data-case-section]').forEach((section) => {
         gsap.from(section, { y: 48, autoAlpha: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: section, start: 'top 82%', once: true } })
       })
