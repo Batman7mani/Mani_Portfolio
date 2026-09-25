@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { AudioExperience } from '@/components/audio-experience'
 
 export const metadata: Metadata = {
   title: 'Mani — Frontend Engineer & Cyber Security Student',
@@ -41,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-[var(--ivory)]">
       <body className="antialiased">
+        <AudioExperience />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

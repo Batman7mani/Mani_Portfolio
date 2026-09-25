@@ -1,0 +1,139 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+
+type AudioChoice = 'audio' | 'silent'
+
+type AudioApi = {
+  enabled: boolean
+  playCue: (kind: 'click' | 'whoosh') => void
+}
+
+const STORAGE_KEY = 'mani-portfolio-audio-choice'
+
+function createCueEngine(context: AudioContext, master: GainNode) {
+  const playClick = () => {
+    const now = context.currentTime
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(620, now)
+    oscillator.frequency.exponentialRampToValueAtTime(940, now + 0.055)
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.045, now + 0.008)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085)
+    oscillator.connect(gain).connect(master)
+    oscillator.start(now)
+    oscillator.stop(now + 0.09)
+  }
+
+  const playWhoosh = () => {
+    const now = context.currentTime
+    const duration = 0.72
+    const buffer = context.createBuffer(1, context.sampleRate * duration, context.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let index = 0; index < data.length; index += 1) {
+      const fade = 1 - index / data.length
+      data[index] = (Math.random() * 2 - 1) * fade
+    }
+    const source = context.createBufferSource()
+    const filter = context.createBiquadFilter()
+    const gain = context.createGain()
+    source.buffer = buffer
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(260, now)
+    filter.frequency.exponentialRampToValueAtTime(2200, now + duration)
+    filter.Q.value = 0.7
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.07, now + 0.12)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
+    source.connect(filter).connect(gain).connect(master)
+    source.start(now)
+    source.stop(now + duration)
+  }
+
+  return { playClick, playWhoosh }
+}
+
+export function AudioExperience() {
+  const [choice, setChoice] = useState<AudioChoice | null>(null)
+  const [muted, setMuted] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const contextRef = useRef<AudioContext | null>(null)
+  const masterRef = useRef<GainNode | null>(null)
+  const cueRef = useRef<AudioApi['playCue']>(() => undefined)
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(STORAGE_KEY) as AudioChoice | null
+    if (saved === 'audio' || saved === 'silent') {
+      setChoice(saved)
+      setMuted(saved === 'silent')
+    }
+  }, [])
+
+  const enableAudio = async (nextChoice: AudioChoice) => {
+    setChoice(nextChoice)
+    setMuted(nextChoice === 'silent')
+    window.localStorage.setItem(STORAGE_KEY, nextChoice)
+    if (nextChoice === 'silent') return
+    const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!AudioContextConstructor) return
+    const context = contextRef.current ?? new AudioContextConstructor()
+    const master = masterRef.current ?? context.createGain()
+    master.gain.value = 0.8
+    master.connect(context.destination)
+    contextRef.current = context
+    masterRef.current = master
+    cueRef.current = (kind) => {
+      if (context.state === 'suspended') void context.resume()
+      const engine = createCueEngine(context, master)
+      if (kind === 'click') engine.playClick()
+      else engine.playWhoosh()
+    }
+    await context.resume()
+    if (audioRef.current) {
+      audioRef.current.volume = 0.32
+      await audioRef.current.play().catch(() => undefined)
+    }
+  }
+
+  useEffect(() => {
+    if (choice !== 'audio') return
+    let lastCue = 0
+    const handleUnlock = () => { void enableAudio('audio') }
+    const handlePointer = (event: PointerEvent) => {
+      const now = performance.now()
+      if (event.pointerType !== 'touch' && Math.abs(event.movementX) + Math.abs(event.movementY) > 12 && now - lastCue > 180) {
+        lastCue = now
+        cueRef.current('click')
+      }
+    }
+    const handleTransition = () => cueRef.current('whoosh')
+    window.addEventListener('pointerdown', handleUnlock, { once: true, passive: true })
+    window.addEventListener('keydown', handleUnlock, { once: true })
+    window.addEventListener('pointermove', handlePointer, { passive: true })
+    window.addEventListener('project-transition-start', handleTransition)
+    return () => {
+      window.removeEventListener('pointermove', handlePointer)
+      window.removeEventListener('project-transition-start', handleTransition)
+      window.removeEventListener('pointerdown', handleUnlock)
+      window.removeEventListener('keydown', handleUnlock)
+    }
+  }, [choice])
+
+  const toggleAudio = async () => {
+    if (muted) {
+      await enableAudio('audio')
+    } else {
+      setMuted(true)
+      window.localStorage.setItem(STORAGE_KEY, 'silent')
+      audioRef.current?.pause()
+    }
+  }
+
+  return <>
+    <audio ref={audioRef} src="/sounddelicious-portfolio-harmony-221983.mp3" loop preload="metadata" aria-hidden="true" />
+    {choice === null && <div className="audio-gate" role="dialog" aria-modal="true" aria-labelledby="audio-gate-title"><div className="audio-gate__panel"><span className="audio-gate__eyebrow">An interactive portfolio / 2026</span><h2 id="audio-gate-title">Enter with<br /><em>sound?</em></h2><p>A subtle score, clicks, and transition whooshes shape the experience. You can change this anytime.</p><div className="audio-gate__actions"><button type="button" onClick={() => void enableAudio('audio')}>Enter with audio <span>↘</span></button><button type="button" onClick={() => void enableAudio('silent')}>Enter silently <span>→</span></button></div><small>Your choice is saved on this device.</small></div></div>}
+    {choice !== null && <button type="button" className={`audio-toggle ${muted ? 'is-muted' : ''}`} onClick={() => void toggleAudio()} aria-label={muted ? 'Turn portfolio audio on' : 'Mute portfolio audio'}>{muted ? 'Audio off' : 'Audio on'} <span aria-hidden="true">{muted ? '×' : '◌'}</span></button>}
+  </>
+}
