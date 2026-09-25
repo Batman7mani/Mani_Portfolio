@@ -186,16 +186,20 @@ export function ProjectDetail({ slug }: { slug: string }) {
           const state = Flip.getState(flipClone)
           gsap.set(destinationFrame, { autoAlpha: 0 })
           const destinationRect = destinationFrame.getBoundingClientRect()
-          gsap.set(flipClone, { left: destinationRect.left, top: destinationRect.top, width: destinationRect.width, height: destinationRect.height, rotate: 0 })
-          Flip.from(state, {
+          const wash = document.querySelector<HTMLElement>('[data-project-flip-wash]')
+          gsap.set(flipClone, { left: destinationRect.left, top: destinationRect.top, width: destinationRect.width, height: destinationRect.height, rotate: 0, borderRadius: 0 })
+          const flip = Flip.from(state, {
             absolute: true,
             duration: 1.05,
             ease: 'power4.inOut',
-            onComplete: () => {
-              gsap.to(destinationFrame, { autoAlpha: 1, duration: 0.25, ease: 'power2.out' })
-              flipClone.remove()
-            },
+            paused: true,
           })
+          gsap.timeline({ onComplete: () => {
+            gsap.to(destinationFrame, { autoAlpha: 1, duration: 0.34, ease: 'power2.out' })
+            gsap.from('[data-case-reveal]', { y: 20, autoAlpha: 0, duration: 0.7, stagger: 0.045, delay: 0.1, ease: 'power3.out' })
+            gsap.to(wash, { autoAlpha: 0, duration: 0.45, delay: 0.08, ease: 'power2.out', onComplete: () => wash?.remove() })
+            flipClone.remove()
+          } }).add(flip, 0).to(flipClone, { borderRadius: 0, duration: 1.05, ease: 'power3.inOut' }, 0).to(flipClone.querySelector('img'), { scale: 1.06, duration: 1.05, ease: 'power2.inOut' }, 0)
         }
         gsap.utils.toArray<HTMLElement>('[data-case-stagger]').forEach((element) => {
           gsap.from(element, { y: 28, autoAlpha: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 88%', once: true } })
@@ -262,9 +266,17 @@ export function ProjectDetail({ slug }: { slug: string }) {
       zIndex: '120',
       pointerEvents: 'none',
       transform: 'rotate(2deg)',
+      borderRadius: '28px',
     })
+    const wash = document.createElement('div')
+    wash.setAttribute('data-project-flip-wash', '')
+    wash.className = 'project-flip-wash'
     document.body.appendChild(clone)
-    window.setTimeout(() => document.querySelector('[data-project-flip-clone]')?.remove(), 2200)
+    document.body.appendChild(wash)
+    window.setTimeout(() => {
+      document.querySelector('[data-project-flip-clone]')?.remove()
+      document.querySelector('[data-project-flip-wash]')?.remove()
+    }, 2400)
     router.push(event.currentTarget.href)
   }
 
