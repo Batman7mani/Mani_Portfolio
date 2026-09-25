@@ -74,7 +74,6 @@ function CinematicCursor() {
         particleX[index](target.x - event.clientX)
         particleY[index](target.y - event.clientY)
         trailPoints[index] = { ...target }
-        gsap.set(particle, { scale: 1 - index * 0.075, opacity: 0.52 - index * 0.045 })
       })
       lastPointer = { x: event.clientX, y: event.clientY }
       gsap.set(cursor, { autoAlpha: 1 })
@@ -185,7 +184,6 @@ export function ProjectDetail({ slug }: { slug: string }) {
   const router = useRouter()
   const project = getProject(slug)
   const root = useRef<HTMLElement | null>(null)
-  const [pointer, setPointer] = useState({ x: 50, y: 50 })
   if (!project) return null
   const currentIndex = projects.findIndex((item) => item.slug === project.slug)
   const nextProject = projects[(currentIndex + 1) % projects.length]
@@ -327,7 +325,8 @@ export function ProjectDetail({ slug }: { slug: string }) {
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
     const rect = event.currentTarget.getBoundingClientRect()
-    setPointer({ x: ((event.clientX - rect.left) / rect.width) * 100, y: ((event.clientY - rect.top) / rect.height) * 100 })
+    root.current?.style.setProperty('--pointer-x', `${((event.clientX - rect.left) / rect.width) * 100}%`)
+    root.current?.style.setProperty('--pointer-y', `${((event.clientY - rect.top) / rect.height) * 100}%`)
   }
 
   const handleNextProjectClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -378,7 +377,7 @@ export function ProjectDetail({ slug }: { slug: string }) {
     router.push(event.currentTarget.href)
   }
 
-  return <main ref={root} className={`case-study case-study--${project.color}`} onPointerMove={handlePointerMove} style={{ '--pointer-x': `${pointer.x}%`, '--pointer-y': `${pointer.y}%` } as React.CSSProperties}>
+  return <main ref={root} className={`case-study case-study--${project.color}`} onPointerMove={handlePointerMove} style={{ '--pointer-x': '50%', '--pointer-y': '50%' } as React.CSSProperties}>
     <CinematicCursor />
     <DetailHeader project={project} />
     <section className="case-study-hero">

@@ -68,6 +68,7 @@ export function AudioExperience() {
   const analyserRef = useRef<AnalyserNode | null>(null)
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
   const cueRef = useRef<AudioApi['playCue']>(() => undefined)
+  const cueEngineRef = useRef<ReturnType<typeof createCueEngine> | null>(null)
   const visualizerRef = useRef<HTMLCanvasElement>(null)
   const gateRef = useRef<HTMLDivElement>(null)
 
@@ -102,11 +103,11 @@ export function AudioExperience() {
       analyserRef.current = analyser
     }
     setAudioReady(true)
+    cueEngineRef.current ??= createCueEngine(context, master)
     cueRef.current = (kind) => {
       if (context.state === 'suspended') void context.resume()
-      const engine = createCueEngine(context, master)
-      if (kind === 'click') engine.playClick()
-      else engine.playWhoosh()
+      if (kind === 'click') cueEngineRef.current?.playClick()
+      else cueEngineRef.current?.playWhoosh()
     }
     await context.resume()
     if (audioRef.current) {
@@ -121,7 +122,7 @@ export function AudioExperience() {
     const handleUnlock = () => { void enableAudio('audio') }
     const handlePointer = (event: PointerEvent) => {
       const now = performance.now()
-      if (event.pointerType !== 'touch' && Math.abs(event.movementX) + Math.abs(event.movementY) > 12 && now - lastCue > 180) {
+      if (event.pointerType !== 'touch' && Math.abs(event.movementX) + Math.abs(event.movementY) > 18 && now - lastCue > 360) {
         lastCue = now
         cueRef.current('click')
       }
