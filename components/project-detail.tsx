@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, MoveDownRight } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 import { getProject, projects, profile, type Project } from '@/lib/portfolio-data'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -103,9 +104,29 @@ export function ProjectDetail({ slug }: { slug: string }) {
   useLayoutEffect(() => {
     if (!root.current) return
     const cleanups: (() => void)[] = []
+    let lenis: Lenis | null = null
     const context = gsap.context(() => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (reduced) return
+      const prefersNativeScroll = window.matchMedia('(pointer: coarse)').matches
+      if (!prefersNativeScroll) {
+        lenis = new Lenis({
+          autoRaf: false,
+          lerp: 0.085,
+          smoothWheel: true,
+          syncTouch: false,
+        })
+        const tick = (time: number) => lenis?.raf(time * 1000)
+        const updateScrollTrigger = () => ScrollTrigger.update()
+        gsap.ticker.add(tick)
+        lenis.on('scroll', updateScrollTrigger)
+        cleanups.push(() => {
+          gsap.ticker.remove(tick)
+          lenis?.off('scroll', updateScrollTrigger)
+          lenis?.destroy()
+          lenis = null
+        })
+      }
       gsap.from('[data-case-reveal]', { y: 34, autoAlpha: 0, duration: 0.9, stagger: 0.07, ease: 'power3.out' })
       const hero = root.current?.querySelector<HTMLElement>('.case-study-hero')
       const heroCopy = root.current?.querySelector<HTMLElement>('.case-study-hero__copy')
