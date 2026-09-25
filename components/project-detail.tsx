@@ -1,14 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowUpRight, MoveDownRight } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
+import { Flip } from 'gsap/Flip'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import { getProject, projects, profile, type Project } from '@/lib/portfolio-data'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, Flip)
 
 type Language = { name: string; percent: number; lines: string; color: string }
 
@@ -24,6 +26,16 @@ function detailLanguages(project: Project): Language[] {
     ...language,
     lines: language.lines.replace(/ lines?$/i, ''),
   })) ?? fallbackLanguages
+}
+
+function hasFullMotionBudget() {
+  const navigatorWithHints = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } }
+  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+    !window.matchMedia('(pointer: coarse)').matches &&
+    !(navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4) &&
+    !(navigatorWithHints.deviceMemory !== undefined && navigatorWithHints.deviceMemory <= 4) &&
+    navigatorWithHints.connection?.saveData !== true &&
+    !window.matchMedia('(update: slow)').matches
 }
 
 function DetailHeader({ project }: { project: Project }) {
@@ -99,6 +111,7 @@ function TrailStatement({ text }: { text: string }) {
 }
 
 export function ProjectDetail({ slug }: { slug: string }) {
+  const router = useRouter()
   const project = getProject(slug)
   const root = useRef<HTMLElement | null>(null)
   const [pointer, setPointer] = useState({ x: 50, y: 50 })
@@ -113,14 +126,7 @@ export function ProjectDetail({ slug }: { slug: string }) {
     const context = gsap.context(() => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (reduced) return
-      const prefersNativeScroll = window.matchMedia('(pointer: coarse)').matches
-      const navigatorWithHints = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } }
-      const lowPowerDevice = prefersNativeScroll ||
-        (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4) ||
-        (navigatorWithHints.deviceMemory !== undefined && navigatorWithHints.deviceMemory <= 4) ||
-        navigatorWithHints.connection?.saveData === true ||
-        window.matchMedia('(update: slow)').matches
-      const fullMotion = !lowPowerDevice
+      const fullMotion = hasFullMotionBudget()
       if (fullMotion) {
         lenis = new Lenis({
           autoRaf: false,
@@ -174,6 +180,23 @@ export function ProjectDetail({ slug }: { slug: string }) {
         gsap.to(words, { color: 'var(--case-accent)', stagger: 0.045, ease: 'none', scrollTrigger: { trigger: statement, start: 'top 76%', end: 'bottom 42%', scrub: 1 } })
       }
       if (fullMotion) {
+        const flipClone = document.querySelector<HTMLElement>('[data-project-flip-clone]')
+        const destinationFrame = root.current?.querySelector<HTMLElement>('.case-study-image-frame')
+        if (flipClone && destinationFrame) {
+          const state = Flip.getState(flipClone)
+          gsap.set(destinationFrame, { autoAlpha: 0 })
+          const destinationRect = destinationFrame.getBoundingClientRect()
+          gsap.set(flipClone, { left: destinationRect.left, top: destinationRect.top, width: destinationRect.width, height: destinationRect.height, rotate: 0 })
+          Flip.from(state, {
+            absolute: true,
+            duration: 1.05,
+            ease: 'power4.inOut',
+            onComplete: () => {
+              gsap.to(destinationFrame, { autoAlpha: 1, duration: 0.25, ease: 'power2.out' })
+              flipClone.remove()
+            },
+          })
+        }
         gsap.utils.toArray<HTMLElement>('[data-case-stagger]').forEach((element) => {
           gsap.from(element, { y: 28, autoAlpha: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 88%', once: true } })
         })
@@ -220,6 +243,31 @@ export function ProjectDetail({ slug }: { slug: string }) {
     setPointer({ x: ((event.clientX - rect.left) / rect.width) * 100, y: ((event.clientY - rect.top) / rect.height) * 100 })
   }
 
+  const handleNextProjectClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!hasFullMotionBudget()) return
+    const frame = root.current?.querySelector<HTMLElement>('.case-study-image-frame')
+    if (!frame) return
+    event.preventDefault()
+    const rect = frame.getBoundingClientRect()
+    const clone = frame.cloneNode(true) as HTMLElement
+    clone.removeAttribute('data-case-media')
+    clone.setAttribute('data-project-flip-clone', '')
+    Object.assign(clone.style, {
+      position: 'fixed',
+      left: `${rect.left}px`,
+      top: `${rect.top}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+      margin: '0',
+      zIndex: '120',
+      pointerEvents: 'none',
+      transform: 'rotate(2deg)',
+    })
+    document.body.appendChild(clone)
+    window.setTimeout(() => document.querySelector('[data-project-flip-clone]')?.remove(), 2200)
+    router.push(event.currentTarget.href)
+  }
+
   return <main ref={root} className={`case-study case-study--${project.color}`} onPointerMove={handlePointerMove} style={{ '--pointer-x': `${pointer.x}%`, '--pointer-y': `${pointer.y}%` } as React.CSSProperties}>
     <DetailHeader project={project} />
     <section className="case-study-hero">
@@ -238,6 +286,6 @@ export function ProjectDetail({ slug }: { slug: string }) {
     <LanguageComposition project={project} />
     <ProcessSection project={project} />
     <section className="case-study-proof" data-case-section><p className="case-study-kicker">{project.title} / closing note</p><h2>Make the next<br /><em>interaction count.</em></h2><p>{project.description}</p><div className="case-study-actions"><a data-magnetic data-magnetic-strength="0.3" href={project.url} target="_blank" rel="noreferrer">Open live project <ArrowUpRight size={17} /></a><a data-magnetic data-magnetic-strength="0.3" href={project.github ?? profile.github} target="_blank" rel="noreferrer">View source <ArrowUpRight size={17} /></a></div></section>
-    <footer className="case-study-next"><Link data-magnetic data-magnetic-strength="0.12" href={`/projects/${nextProject.slug}`}><span>Next project / {nextProject.index}</span><strong>{nextProject.title}</strong><ArrowUpRight size={24} /></Link><Link className="case-study-home" data-magnetic data-magnetic-strength="0.3" href="/">Back to all work</Link></footer>
+    <footer className="case-study-next"><Link data-magnetic data-magnetic-strength="0.12" href={`/projects/${nextProject.slug}`} onClick={handleNextProjectClick}><span>Next project / {nextProject.index}</span><strong>{nextProject.title}</strong><ArrowUpRight size={24} /></Link><Link className="case-study-home" data-magnetic data-magnetic-strength="0.3" href="/">Back to all work</Link></footer>
   </main>
 }
