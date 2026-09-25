@@ -292,3 +292,12 @@ html.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 @media (max-width: 760px), (pointer: coarse), (prefers-reduced-motion: reduce) {
   .project-flip-wash, [data-project-flip-clone] { display: none; }
 }
+
+/* Cinematic cursor and transition particle trail */
+.cinematic-cursor { position: fixed; inset: 0 auto auto 0; z-index: 200; width: 1px; height: 1px; pointer-events: none; opacity: 0; mix-blend-mode: difference; }
+.cinematic-cursor__core, .cinematic-cursor__particle { position: absolute; display: block; border-radius: 50%; background: var(--paper); pointer-events: none; transform: translate(-50%, -50%); }
+.cinematic-cursor__core { width: 13px; height: 13px; box-shadow: 0 0 0 1px rgba(255,255,255,.45), 0 0 28px rgba(255,255,255,.55); }
+.cinematic-cursor__particle { width: 6px; height: 6px; opacity: .4; }
+@media (max-width: 760px), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .cinematic-cursor { display: none; }
+}

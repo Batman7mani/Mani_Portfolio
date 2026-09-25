@@ -38,6 +38,66 @@ function hasFullMotionBudget() {
     !window.matchMedia('(update: slow)').matches
 }
 
+function CinematicCursor() {
+  const cursorRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const cursor = cursorRef.current
+    if (!cursor || !hasFullMotionBudget()) return
+    const core = cursor.querySelector<HTMLElement>('[data-cursor-core]')
+    const particles = gsap.utils.toArray<HTMLElement>('[data-cursor-particle]')
+    if (!core || particles.length === 0) return
+    const xTo = gsap.quickTo(cursor, 'x', { duration: 0.16, ease: 'power3.out' })
+    const yTo = gsap.quickTo(cursor, 'y', { duration: 0.16, ease: 'power3.out' })
+    const particleX = particles.map((particle, index) => gsap.quickTo(particle, 'x', { duration: 0.18 + index * 0.055, ease: 'power3.out' }))
+    const particleY = particles.map((particle, index) => gsap.quickTo(particle, 'y', { duration: 0.18 + index * 0.055, ease: 'power3.out' }))
+    const trailPoints = particles.map(() => ({ x: 0, y: 0 }))
+    let lastPointer = { x: 0, y: 0 }
+    const handleMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      xTo(event.clientX)
+      yTo(event.clientY)
+      const previousPointer = lastPointer
+      particles.forEach((particle, index) => {
+        const target = index === 0 ? previousPointer : trailPoints[index - 1]
+        particleX[index](target.x - event.clientX)
+        particleY[index](target.y - event.clientY)
+        trailPoints[index] = { ...target }
+        gsap.set(particle, { scale: 1 - index * 0.075, opacity: 0.52 - index * 0.045 })
+      })
+      lastPointer = { x: event.clientX, y: event.clientY }
+      gsap.set(cursor, { autoAlpha: 1 })
+    }
+    const handleLeave = () => gsap.to(cursor, { autoAlpha: 0, duration: 0.2, overwrite: true })
+    const handleTransition = (event: Event) => {
+      const { x, y } = (event as CustomEvent<{ x: number; y: number }>).detail
+      gsap.killTweensOf([cursor, core, ...particles])
+      gsap.to(cursor, { x, y, scale: 1.6, autoAlpha: 1, duration: 0.25, ease: 'power3.out' })
+      gsap.to(particles, {
+        x: (index) => Math.cos(index * 0.9) * (34 + index * 8),
+        y: (index) => Math.sin(index * 0.9) * (34 + index * 8),
+        scale: 0.2,
+        autoAlpha: 0,
+        duration: 0.7,
+        stagger: 0.025,
+        ease: 'power3.out',
+      })
+      gsap.to(core, { scale: 0, autoAlpha: 0, duration: 0.45, delay: 0.12, ease: 'power2.in' })
+    }
+    window.addEventListener('pointermove', handleMove, { passive: true })
+    window.addEventListener('pointerleave', handleLeave)
+    window.addEventListener('project-transition-start', handleTransition)
+    return () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerleave', handleLeave)
+      window.removeEventListener('project-transition-start', handleTransition)
+      gsap.killTweensOf([cursor, core, ...particles])
+    }
+  }, [])
+
+  return <div ref={cursorRef} className="cinematic-cursor" aria-hidden="true"><span data-cursor-core className="cinematic-cursor__core" />{Array.from({ length: 7 }, (_, index) => <span data-cursor-particle key={index} className="cinematic-cursor__particle" />)}</div>
+}
+
 function DetailHeader({ project }: { project: Project }) {
   return (
     <header className="case-study-header">
@@ -273,6 +333,7 @@ export function ProjectDetail({ slug }: { slug: string }) {
     wash.className = 'project-flip-wash'
     document.body.appendChild(clone)
     document.body.appendChild(wash)
+    window.dispatchEvent(new CustomEvent('project-transition-start', { detail: { x: event.clientX, y: event.clientY } }))
     window.setTimeout(() => {
       document.querySelector('[data-project-flip-clone]')?.remove()
       document.querySelector('[data-project-flip-wash]')?.remove()
@@ -281,6 +342,7 @@ export function ProjectDetail({ slug }: { slug: string }) {
   }
 
   return <main ref={root} className={`case-study case-study--${project.color}`} onPointerMove={handlePointerMove} style={{ '--pointer-x': `${pointer.x}%`, '--pointer-y': `${pointer.y}%` } as React.CSSProperties}>
+    <CinematicCursor />
     <DetailHeader project={project} />
     <section className="case-study-hero">
       <div className="case-study-hero__copy">
