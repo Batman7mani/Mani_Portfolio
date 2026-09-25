@@ -109,7 +109,14 @@ export function ProjectDetail({ slug }: { slug: string }) {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (reduced) return
       const prefersNativeScroll = window.matchMedia('(pointer: coarse)').matches
-      if (!prefersNativeScroll) {
+      const navigatorWithHints = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } }
+      const lowPowerDevice = prefersNativeScroll ||
+        (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4) ||
+        (navigatorWithHints.deviceMemory !== undefined && navigatorWithHints.deviceMemory <= 4) ||
+        navigatorWithHints.connection?.saveData === true ||
+        window.matchMedia('(update: slow)').matches
+      const fullMotion = !lowPowerDevice
+      if (fullMotion) {
         lenis = new Lenis({
           autoRaf: false,
           lerp: 0.085,
@@ -118,21 +125,33 @@ export function ProjectDetail({ slug }: { slug: string }) {
         })
         const tick = (time: number) => lenis?.raf(time * 1000)
         const updateScrollTrigger = () => ScrollTrigger.update()
+        const handleVisibility = () => {
+          if (document.hidden) {
+            gsap.ticker.remove(tick)
+            lenis?.stop()
+          } else {
+            lenis?.start()
+            gsap.ticker.add(tick)
+            ScrollTrigger.refresh()
+          }
+        }
         gsap.ticker.add(tick)
         lenis.on('scroll', updateScrollTrigger)
+        document.addEventListener('visibilitychange', handleVisibility)
         cleanups.push(() => {
           gsap.ticker.remove(tick)
           lenis?.off('scroll', updateScrollTrigger)
+          document.removeEventListener('visibilitychange', handleVisibility)
           lenis?.destroy()
           lenis = null
         })
       }
-      gsap.from('[data-case-reveal]', { y: 34, autoAlpha: 0, duration: 0.9, stagger: 0.07, ease: 'power3.out' })
+      gsap.from('[data-case-reveal]', { y: fullMotion ? 34 : 18, autoAlpha: 0, duration: fullMotion ? 0.9 : 0.45, stagger: fullMotion ? 0.07 : 0.03, ease: 'power3.out' })
       const hero = root.current?.querySelector<HTMLElement>('.case-study-hero')
       const heroCopy = root.current?.querySelector<HTMLElement>('.case-study-hero__copy')
       const heroVisual = root.current?.querySelector<HTMLElement>('.case-study-hero__visual')
       const heroFooter = root.current?.querySelector<HTMLElement>('.case-study-hero__footer')
-      if (hero && heroCopy && heroVisual && heroFooter) {
+      if (fullMotion && hero && heroCopy && heroVisual && heroFooter) {
         gsap.timeline({
           scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1 },
         })
@@ -141,18 +160,20 @@ export function ProjectDetail({ slug }: { slug: string }) {
           .to(heroFooter, { y: 18, autoAlpha: 0, ease: 'none' }, 0.12)
       }
       const media = root.current?.querySelector('[data-case-media]')
-      if (media) gsap.to(media, { yPercent: -10, scale: 1.08, ease: 'none', scrollTrigger: { trigger: media, start: 'top bottom', end: 'bottom top', scrub: 1 } })
+      if (fullMotion && media) gsap.to(media, { yPercent: -10, scale: 1.08, ease: 'none', scrollTrigger: { trigger: media, start: 'top bottom', end: 'bottom top', scrub: 1 } })
       const statement = root.current?.querySelector<HTMLElement>('.case-study-statement p')
-      if (statement) {
+      if (fullMotion && statement) {
         gsap.fromTo(statement, { xPercent: -5, autoAlpha: 0.25 }, { xPercent: 0, autoAlpha: 1, ease: 'none', scrollTrigger: { trigger: statement, start: 'top bottom', end: 'top 38%', scrub: 1 } })
       }
-      gsap.utils.toArray<HTMLElement>('[data-case-stagger]').forEach((element) => {
-        gsap.from(element, { y: 28, autoAlpha: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 88%', once: true } })
-      })
-      gsap.utils.toArray<HTMLElement>('[data-case-section]').forEach((section) => {
-        gsap.from(section, { y: 48, autoAlpha: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: section, start: 'top 82%', once: true } })
-      })
-      if (window.matchMedia('(pointer: coarse)').matches) return
+      if (fullMotion) {
+        gsap.utils.toArray<HTMLElement>('[data-case-stagger]').forEach((element) => {
+          gsap.from(element, { y: 28, autoAlpha: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 88%', once: true } })
+        })
+        gsap.utils.toArray<HTMLElement>('[data-case-section]').forEach((section) => {
+          gsap.from(section, { y: 48, autoAlpha: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: section, start: 'top 82%', once: true } })
+        })
+      }
+      if (!fullMotion) return
       gsap.utils.toArray<HTMLElement>('[data-magnetic]').forEach((element) => {
         const strength = Number(element.dataset.magneticStrength ?? 0.22)
         const xTo = gsap.quickTo(element, 'x', { duration: 0.35, ease: 'power3.out' })
