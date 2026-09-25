@@ -38,6 +38,17 @@ function hasFullMotionBudget() {
     !window.matchMedia('(update: slow)').matches
 }
 
+function settleText(element: HTMLElement, finalText: string) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·/—'
+  let progress = 0
+  const reveal = () => {
+    progress += 1
+    element.textContent = finalText.split('').map((character, index) => index < progress ? character : chars[Math.floor(Math.random() * chars.length)]).join('')
+    if (progress < finalText.length) window.setTimeout(reveal, 34)
+  }
+  reveal()
+}
+
 function CinematicCursor() {
   const cursorRef = useRef<HTMLDivElement>(null)
 
@@ -241,13 +252,21 @@ export function ProjectDetail({ slug }: { slug: string }) {
       }
       if (fullMotion) {
         const flipClone = document.querySelector<HTMLElement>('[data-project-flip-clone]')
+        const flipTitle = document.querySelector<HTMLElement>('[data-project-flip-title]')
         const destinationFrame = root.current?.querySelector<HTMLElement>('.case-study-image-frame')
+        const destinationTitle = root.current?.querySelector<HTMLElement>('.case-study-hero h1')
         if (flipClone && destinationFrame) {
           const state = Flip.getState(flipClone)
           gsap.set(destinationFrame, { autoAlpha: 0 })
           const destinationRect = destinationFrame.getBoundingClientRect()
           const wash = document.querySelector<HTMLElement>('[data-project-flip-wash]')
+          const titleState = flipTitle && destinationTitle ? Flip.getState(flipTitle) : null
+          if (destinationTitle) gsap.set(destinationTitle, { autoAlpha: 0 })
           gsap.set(flipClone, { left: destinationRect.left, top: destinationRect.top, width: destinationRect.width, height: destinationRect.height, rotate: 0, borderRadius: 0 })
+          if (flipTitle && destinationTitle) {
+            const titleRect = destinationTitle.getBoundingClientRect()
+            gsap.set(flipTitle, { left: titleRect.left, top: titleRect.top, width: titleRect.width, height: titleRect.height, fontSize: getComputedStyle(destinationTitle).fontSize, lineHeight: getComputedStyle(destinationTitle).lineHeight, rotate: 0 })
+          }
           const flip = Flip.from(state, {
             absolute: true,
             duration: 1.05,
@@ -256,10 +275,14 @@ export function ProjectDetail({ slug }: { slug: string }) {
           })
           gsap.timeline({ onComplete: () => {
             gsap.to(destinationFrame, { autoAlpha: 1, duration: 0.34, ease: 'power2.out' })
-            gsap.from('[data-case-reveal]', { y: 20, autoAlpha: 0, duration: 0.7, stagger: 0.045, delay: 0.1, ease: 'power3.out' })
+            if (destinationTitle) gsap.to(destinationTitle, { autoAlpha: 1, duration: 0.22, delay: 0.1 })
+            gsap.from('[data-case-reveal]:not(h1)', { y: 20, autoAlpha: 0, duration: 0.7, stagger: 0.045, delay: 0.18, ease: 'power3.out' })
+            root.current?.querySelectorAll<HTMLElement>('.case-study-hero__meta span').forEach((item) => settleText(item, item.textContent ?? ''))
             gsap.to(wash, { autoAlpha: 0, duration: 0.45, delay: 0.08, ease: 'power2.out', onComplete: () => wash?.remove() })
             flipClone.remove()
+            flipTitle?.remove()
           } }).add(flip, 0).to(flipClone, { borderRadius: 0, duration: 1.05, ease: 'power3.inOut' }, 0).to(flipClone.querySelector('img'), { scale: 1.06, duration: 1.05, ease: 'power2.inOut' }, 0)
+          if (flipTitle && titleState) Flip.from(titleState, { absolute: true, duration: 1.2, ease: 'power4.out', paused: false })
         }
         gsap.utils.toArray<HTMLElement>('[data-case-stagger]').forEach((element) => {
           gsap.from(element, { y: 28, autoAlpha: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 88%', once: true } })
@@ -312,8 +335,11 @@ export function ProjectDetail({ slug }: { slug: string }) {
     const frame = root.current?.querySelector<HTMLElement>('.case-study-image-frame')
     if (!frame) return
     event.preventDefault()
-    const rect = frame.getBoundingClientRect()
-    const clone = frame.cloneNode(true) as HTMLElement
+    const teaserImage = event.currentTarget.querySelector<HTMLElement>('[data-next-project-image]')
+    const teaserTitle = event.currentTarget.querySelector<HTMLElement>('[data-next-project-title]')
+    const rect = (teaserImage ?? frame).getBoundingClientRect()
+    const clone = (teaserImage ?? frame).cloneNode(true) as HTMLElement
+    const titleClone = teaserTitle?.cloneNode(true) as HTMLElement | undefined
     clone.removeAttribute('data-case-media')
     clone.setAttribute('data-project-flip-clone', '')
     Object.assign(clone.style, {
@@ -332,10 +358,21 @@ export function ProjectDetail({ slug }: { slug: string }) {
     wash.setAttribute('data-project-flip-wash', '')
     wash.className = 'project-flip-wash'
     document.body.appendChild(clone)
+    if (teaserImage) {
+      const imageRect = teaserImage.getBoundingClientRect()
+      Object.assign(clone.style, { left: `${imageRect.left}px`, top: `${imageRect.top}px`, width: `${imageRect.width}px`, height: `${imageRect.height}px`, transform: 'rotate(0deg)' })
+    }
+    if (titleClone && teaserTitle) {
+      const titleRect = teaserTitle.getBoundingClientRect()
+      titleClone.setAttribute('data-project-flip-title', '')
+      Object.assign(titleClone.style, { position: 'fixed', left: `${titleRect.left}px`, top: `${titleRect.top}px`, width: `${titleRect.width}px`, height: `${titleRect.height}px`, margin: '0', zIndex: '121', pointerEvents: 'none' })
+      document.body.appendChild(titleClone)
+    }
     document.body.appendChild(wash)
     window.dispatchEvent(new CustomEvent('project-transition-start', { detail: { x: event.clientX, y: event.clientY } }))
     window.setTimeout(() => {
       document.querySelector('[data-project-flip-clone]')?.remove()
+      document.querySelector('[data-project-flip-title]')?.remove()
       document.querySelector('[data-project-flip-wash]')?.remove()
     }, 2400)
     router.push(event.currentTarget.href)
@@ -360,6 +397,6 @@ export function ProjectDetail({ slug }: { slug: string }) {
     <LanguageComposition project={project} />
     <ProcessSection project={project} />
     <section className="case-study-proof" data-case-section><p className="case-study-kicker">{project.title} / closing note</p><h2>Make the next<br /><em>interaction count.</em></h2><p>{project.description}</p><div className="case-study-actions"><a data-magnetic data-magnetic-strength="0.3" href={project.url} target="_blank" rel="noreferrer">Open live project <ArrowUpRight size={17} /></a><a data-magnetic data-magnetic-strength="0.3" href={project.github ?? profile.github} target="_blank" rel="noreferrer">View source <ArrowUpRight size={17} /></a></div></section>
-    <footer className="case-study-next"><Link data-magnetic data-magnetic-strength="0.12" href={`/projects/${nextProject.slug}`} onClick={handleNextProjectClick}><span>Next project / {nextProject.index}</span><strong>{nextProject.title}</strong><ArrowUpRight size={24} /></Link><Link className="case-study-home" data-magnetic data-magnetic-strength="0.3" href="/">Back to all work</Link></footer>
+    <footer className="case-study-next"><Link data-magnetic data-magnetic-strength="0.12" href={`/projects/${nextProject.slug}`} onClick={handleNextProjectClick}><span>Next project / {nextProject.index}</span><strong data-next-project-title>{nextProject.title}</strong><span className="case-study-next__image"><img data-next-project-image src={nextProject.image} alt="" /></span><ArrowUpRight size={24} /></Link><Link className="case-study-home" data-magnetic data-magnetic-strength="0.3" href="/">Back to all work</Link></footer>
   </main>
 }
