@@ -1,11 +1,77 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, Camera, Mail, Phone } from 'lucide-react'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { profile, projects, skills } from '@/lib/portfolio-data'
 import { experiences } from '@/lib/experience-data'
 import { HeroScene, IntroCurtain, PixelBye } from '@/components/motion-layer'
+
+gsap.registerPlugin(ScrollTrigger)
+
+function canAnimateProjectCard() {
+  const navigatorWithHints = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } }
+  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+    window.matchMedia('(pointer: fine)').matches &&
+    !(navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4) &&
+    !(navigatorWithHints.deviceMemory !== undefined && navigatorWithHints.deviceMemory <= 4) &&
+    navigatorWithHints.connection?.saveData !== true &&
+    !window.matchMedia('(update: slow)').matches
+}
+
+function ProjectPreviewCard({ project }: { project: (typeof projects)[number] }) {
+  const cardRef = useRef<HTMLAnchorElement>(null)
+
+  useLayoutEffect(() => {
+    const card = cardRef.current
+    if (!card || !canAnimateProjectCard()) return
+    const image = card.querySelector<HTMLElement>('.project-image img')
+    const copy = card.querySelector<HTMLElement>('.project-row-copy')
+    if (!image) return
+    const context = gsap.context(() => {
+      const rotateX = gsap.quickTo(card, 'rotationX', { duration: 0.5, ease: 'power3.out' })
+      const rotateY = gsap.quickTo(card, 'rotationY', { duration: 0.5, ease: 'power3.out' })
+      const imageX = gsap.quickTo(image, 'xPercent', { duration: 0.65, ease: 'power3.out' })
+      const imageY = gsap.quickTo(image, 'yPercent', { duration: 0.65, ease: 'power3.out' })
+      const copyZ = copy ? gsap.quickTo(copy, 'z', { duration: 0.6, ease: 'power3.out' }) : null
+      const handleMove = (event: PointerEvent) => {
+        if (event.pointerType === 'touch') return
+        const rect = card.getBoundingClientRect()
+        const x = (event.clientX - rect.left) / rect.width - 0.5
+        const y = (event.clientY - rect.top) / rect.height - 0.5
+        rotateX(y * -7)
+        rotateY(x * 8)
+        imageX(x * 4)
+        imageY(y * 4)
+        copyZ?.(14)
+      }
+      const handleLeave = () => {
+        rotateX(0)
+        rotateY(0)
+        imageX(0)
+        imageY(0)
+        copyZ?.(0)
+      }
+      card.addEventListener('pointermove', handleMove, { passive: true })
+      card.addEventListener('pointerleave', handleLeave, { passive: true })
+      gsap.to(image, {
+        yPercent: -8,
+        scale: 1.08,
+        ease: 'none',
+        scrollTrigger: { trigger: card, start: 'top bottom', end: 'bottom top', scrub: 1.1 },
+      })
+      return () => {
+        card.removeEventListener('pointermove', handleMove)
+        card.removeEventListener('pointerleave', handleLeave)
+      }
+    }, cardRef)
+    return () => context.revert()
+  }, [])
+
+  return <Link ref={cardRef} href={`/projects/${project.slug}`} className={`project-row ${project.color}`}><div className="project-image"><img src={project.image} alt={project.imageAlt} loading="lazy" /></div><span className="project-number">{project.index}</span><div className="project-row-copy"><p className="eyebrow">{project.eyebrow}</p><h3 className="cursor-highlight">{project.title}</h3><p className="project-summary">{project.summary}</p><div className="project-metrics">{project.metrics.slice(0, 2).map((metric) => <span key={metric}>{metric}</span>)}</div></div><ArrowUpRight className="project-arrow" size={28} /></Link>
+}
 
 function CurvedProcess({ items }: { items: { step: string; title: string; detail: string }[] }) {
   const [progress, setProgress] = useState(0)
@@ -149,7 +215,7 @@ export function Portfolio() {
 
       <section className="work section-pad" id="work">
         <Reveal><div className="section-heading"><p className="eyebrow">02 / Selected work</p><span className="section-note">Click a project to enter →</span></div></Reveal>
-        <div className="project-list">{projects.map((project) => <Reveal key={project.slug}><Link href={`/projects/${project.slug}`} className={`project-row ${project.color}`}><div className="project-image"><img src={project.image} alt={project.imageAlt} loading="lazy" /></div><span className="project-number">{project.index}</span><div className="project-row-copy"><p className="eyebrow">{project.eyebrow}</p><h3 className="cursor-highlight">{project.title}</h3><p className="project-summary">{project.summary}</p><div className="project-metrics">{project.metrics.slice(0, 2).map((metric) => <span key={metric}>{metric}</span>)}</div></div><ArrowUpRight className="project-arrow" size={28} /></Link></Reveal>)}</div>
+        <div className="project-list">{projects.map((project) => <Reveal key={project.slug}><ProjectPreviewCard project={project} /></Reveal>)}</div>
       </section>
 
       <div className="work-experience-transition" aria-hidden="true">
