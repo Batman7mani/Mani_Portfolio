@@ -1,16 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { gsap } from 'gsap'
-
-type AudioChoice = 'audio' | 'silent'
 
 type AudioApi = {
   enabled: boolean
   playCue: (kind: 'click' | 'whoosh') => void
 }
-
-const STORAGE_KEY = 'mani-portfolio-audio-choice'
 
 function createCueEngine(context: AudioContext, master: GainNode) {
   const playClick = () => {
@@ -57,10 +52,9 @@ function createCueEngine(context: AudioContext, master: GainNode) {
 }
 
 export function AudioExperience() {
-  const [choice, setChoice] = useState<AudioChoice | null>(null)
+  const [audioEnabled, setAudioEnabled] = useState(false)
   const [muted, setMuted] = useState(false)
   const [audioReady, setAudioReady] = useState(false)
-  const [entering, setEntering] = useState(false)
   const [scrubbing, setScrubbing] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const contextRef = useRef<AudioContext | null>(null)
@@ -70,21 +64,10 @@ export function AudioExperience() {
   const cueRef = useRef<AudioApi['playCue']>(() => undefined)
   const cueEngineRef = useRef<ReturnType<typeof createCueEngine> | null>(null)
   const visualizerRef = useRef<HTMLCanvasElement>(null)
-  const gateRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY) as AudioChoice | null
-    if (saved === 'audio' || saved === 'silent') {
-      setChoice(saved)
-      setMuted(saved === 'silent')
-    }
-  }, [])
-
-  const enableAudio = async (nextChoice: AudioChoice) => {
-    setChoice(nextChoice)
-    setMuted(nextChoice === 'silent')
-    window.localStorage.setItem(STORAGE_KEY, nextChoice)
-    if (nextChoice === 'silent') return
+  const enableAudio = async () => {
+    setAudioEnabled(true)
+    setMuted(false)
     const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!AudioContextConstructor) return
     const context = contextRef.current ?? new AudioContextConstructor()
@@ -117,17 +100,16 @@ export function AudioExperience() {
   }
 
   useEffect(() => {
-    if (choice !== 'audio') return
     let lastCue = 0
-    const handleUnlock = () => { void enableAudio('audio') }
+    const handleUnlock = () => { void enableAudio() }
     const handlePointer = (event: PointerEvent) => {
       const now = performance.now()
-      if (event.pointerType !== 'touch' && Math.abs(event.movementX) + Math.abs(event.movementY) > 18 && now - lastCue > 360) {
+      if (audioEnabled && event.pointerType !== 'touch' && Math.abs(event.movementX) + Math.abs(event.movementY) > 18 && now - lastCue > 360) {
         lastCue = now
         cueRef.current('click')
       }
     }
-    const handleTransition = () => cueRef.current('whoosh')
+    const handleTransition = () => { if (audioEnabled) cueRef.current('whoosh') }
     window.addEventListener('pointerdown', handleUnlock, { once: true, passive: true })
     window.addEventListener('keydown', handleUnlock, { once: true })
     window.addEventListener('pointermove', handlePointer, { passive: true })
@@ -138,12 +120,12 @@ export function AudioExperience() {
       window.removeEventListener('pointerdown', handleUnlock)
       window.removeEventListener('keydown', handleUnlock)
     }
-  }, [choice])
+  }, [audioEnabled])
 
   useEffect(() => {
     const canvas = visualizerRef.current
     const analyser = analyserRef.current
-    if (!canvas || !analyser || choice !== 'audio') return
+    if (!canvas || !analyser || !audioEnabled) return
     const context = canvas.getContext('2d')
     if (!context) return
     const values = new Uint8Array(analyser.frequencyBinCount)
@@ -181,26 +163,14 @@ export function AudioExperience() {
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [choice, muted, audioReady])
+  }, [audioEnabled, muted, audioReady])
 
   const toggleAudio = async () => {
     if (muted) {
-      await enableAudio('audio')
+      await enableAudio()
     } else {
       setMuted(true)
-      window.localStorage.setItem(STORAGE_KEY, 'silent')
       audioRef.current?.pause()
-    }
-  }
-
-  const beginEntry = async (nextChoice: AudioChoice) => {
-    await enableAudio(nextChoice)
-    setEntering(true)
-    if (gateRef.current) {
-      gsap.timeline({ onComplete: () => setEntering(false) })
-        .to(gateRef.current, { backgroundColor: 'transparent', duration: 0.35, ease: 'power2.inOut' })
-        .to(gateRef.current.querySelector('.audio-gate__panel'), { yPercent: -9, scale: 1.04, autoAlpha: 0, duration: 0.72, ease: 'power4.inOut' }, 0.08)
-        .to(gateRef.current, { autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, 0.5)
     }
   }
 
@@ -215,7 +185,7 @@ export function AudioExperience() {
 
   return <>
     <audio ref={audioRef} src="/sounddelicious-portfolio-harmony-221983.mp3" loop preload="metadata" aria-hidden="true" />
-    {(choice === null || entering) && <div ref={gateRef} className={`audio-gate ${entering ? 'is-entering' : ''}`} role="dialog" aria-modal="true" aria-labelledby="audio-gate-title"><div className="audio-gate__panel"><span className="audio-gate__eyebrow">M/MC<span>.</span> / An interactive portfolio / 2026</span><h2 id="audio-gate-title">Enter with<br /><em>sound?</em></h2><p>A subtle score, clicks, and transition whooshes shape the experience. You can change this anytime.</p><div className="audio-gate__actions"><button type="button" onClick={() => void beginEntry('audio')}>Enter with audio <span>↘</span></button><button type="button" onClick={() => void beginEntry('silent')}>Enter silently <span>→</span></button></div><small>Your choice is saved on this device.</small></div></div>}
-    {choice !== null && <><canvas ref={visualizerRef} className={`audio-visualizer ${muted ? 'is-muted' : ''} ${scrubbing ? 'is-scrubbing' : ''}`} onPointerDown={(event) => { setScrubbing(true); event.currentTarget.setPointerCapture(event.pointerId); seekFromPointer(event) }} onPointerMove={(event) => { if (scrubbing) seekFromPointer(event) }} onPointerUp={() => setScrubbing(false)} onPointerCancel={() => setScrubbing(false)} onKeyDown={(event) => { const audio = audioRef.current; if (!audio || !Number.isFinite(audio.duration)) return; if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + (event.key === 'ArrowRight' ? 5 : -5))) } }} aria-label="Drag to scrub through the portfolio soundtrack" role="slider" tabIndex={0} aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} /><button type="button" className={`audio-toggle ${muted ? 'is-muted' : ''}`} onClick={() => void toggleAudio()} aria-label={muted ? 'Turn portfolio audio on' : 'Mute portfolio audio'}>{muted ? 'Audio off' : 'Audio on'} <span aria-hidden="true">{muted ? '×' : '◌'}</span></button></>}
+    <canvas ref={visualizerRef} className={`audio-visualizer ${muted ? 'is-muted' : ''} ${scrubbing ? 'is-scrubbing' : ''}`} onPointerDown={(event) => { setScrubbing(true); event.currentTarget.setPointerCapture(event.pointerId); seekFromPointer(event) }} onPointerMove={(event) => { if (scrubbing) seekFromPointer(event) }} onPointerUp={() => setScrubbing(false)} onPointerCancel={() => setScrubbing(false)} onKeyDown={(event) => { const audio = audioRef.current; if (!audio || !Number.isFinite(audio.duration)) return; if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + (event.key === 'ArrowRight' ? 5 : -5))) } }} aria-label="Drag to scrub through the portfolio soundtrack" role="slider" tabIndex={0} aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} />
+    <button type="button" className={`audio-toggle ${muted ? 'is-muted' : ''}`} onClick={() => void toggleAudio()} aria-label={muted ? 'Turn portfolio audio on' : 'Mute portfolio audio'}>{muted ? 'Audio off' : 'Audio on'} <span aria-hidden="true">{muted ? '×' : '◌'}</span></button>
   </>
 }
