@@ -31,7 +31,7 @@ function DetailHeader({ project }: { project: Project }) {
       <Link className="wordmark" href="/" aria-label="Back to Mani portfolio">M/MC<span>.</span></Link>
       <div className="case-study-header__meta">
         <span>Project {project.index}</span>
-        <Link className="case-study-close" href="/"><ArrowLeft size={15} /> Exit case study</Link>
+        <Link className="case-study-close" href="/" data-magnetic><ArrowLeft size={15} /> Exit case study</Link>
       </div>
     </header>
   )
@@ -102,6 +102,7 @@ export function ProjectDetail({ slug }: { slug: string }) {
 
   useLayoutEffect(() => {
     if (!root.current) return
+    const cleanups: (() => void)[] = []
     const context = gsap.context(() => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (reduced) return
@@ -111,8 +112,38 @@ export function ProjectDetail({ slug }: { slug: string }) {
       gsap.utils.toArray<HTMLElement>('[data-case-section]').forEach((section) => {
         gsap.from(section, { y: 48, autoAlpha: 0, duration: 1, ease: 'power3.out', scrollTrigger: { trigger: section, start: 'top 82%', once: true } })
       })
+      if (window.matchMedia('(pointer: coarse)').matches) return
+      gsap.utils.toArray<HTMLElement>('[data-magnetic]').forEach((element) => {
+        const strength = Number(element.dataset.magneticStrength ?? 0.22)
+        const xTo = gsap.quickTo(element, 'x', { duration: 0.35, ease: 'power3.out' })
+        const yTo = gsap.quickTo(element, 'y', { duration: 0.35, ease: 'power3.out' })
+        const rotateTo = gsap.quickTo(element, 'rotation', { duration: 0.45, ease: 'power3.out' })
+        const handleMove = (event: PointerEvent) => {
+          const rect = element.getBoundingClientRect()
+          const x = event.clientX - (rect.left + rect.width / 2)
+          const y = event.clientY - (rect.top + rect.height / 2)
+          xTo(x * strength)
+          yTo(y * strength)
+          rotateTo(Math.max(-3, Math.min(3, x / rect.width * 2)))
+        }
+        const handleLeave = () => {
+          xTo(0)
+          yTo(0)
+          rotateTo(0)
+        }
+        element.addEventListener('pointermove', handleMove)
+        element.addEventListener('pointerleave', handleLeave)
+        cleanups.push(() => {
+          element.removeEventListener('pointermove', handleMove)
+          element.removeEventListener('pointerleave', handleLeave)
+          gsap.killTweensOf(element)
+        })
+      })
     }, root)
-    return () => context.revert()
+    return () => {
+      cleanups.forEach((cleanup) => cleanup())
+      context.revert()
+    }
   }, [project.slug])
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
@@ -137,7 +168,7 @@ export function ProjectDetail({ slug }: { slug: string }) {
     <ProjectFacts project={project} />
     <LanguageComposition project={project} />
     <ProcessSection project={project} />
-    <section className="case-study-proof" data-case-section><p className="case-study-kicker">{project.title} / closing note</p><h2>Make the next<br /><em>interaction count.</em></h2><p>{project.description}</p><div className="case-study-actions"><a href={project.url} target="_blank" rel="noreferrer">Open live project <ArrowUpRight size={17} /></a><a href={project.github ?? profile.github} target="_blank" rel="noreferrer">View source <ArrowUpRight size={17} /></a></div></section>
-    <footer className="case-study-next"><Link href={`/projects/${nextProject.slug}`}><span>Next project / {nextProject.index}</span><strong>{nextProject.title}</strong><ArrowUpRight size={24} /></Link><Link className="case-study-home" href="/">Back to all work</Link></footer>
+    <section className="case-study-proof" data-case-section><p className="case-study-kicker">{project.title} / closing note</p><h2>Make the next<br /><em>interaction count.</em></h2><p>{project.description}</p><div className="case-study-actions"><a data-magnetic data-magnetic-strength="0.3" href={project.url} target="_blank" rel="noreferrer">Open live project <ArrowUpRight size={17} /></a><a data-magnetic data-magnetic-strength="0.3" href={project.github ?? profile.github} target="_blank" rel="noreferrer">View source <ArrowUpRight size={17} /></a></div></section>
+    <footer className="case-study-next"><Link data-magnetic data-magnetic-strength="0.12" href={`/projects/${nextProject.slug}`}><span>Next project / {nextProject.index}</span><strong>{nextProject.title}</strong><ArrowUpRight size={24} /></Link><Link className="case-study-home" data-magnetic data-magnetic-strength="0.3" href="/">Back to all work</Link></footer>
   </main>
 }
