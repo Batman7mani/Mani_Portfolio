@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { gsap } from 'gsap'
 
 type AudioChoice = 'audio' | 'silent'
 
@@ -59,6 +60,8 @@ export function AudioExperience() {
   const [choice, setChoice] = useState<AudioChoice | null>(null)
   const [muted, setMuted] = useState(false)
   const [audioReady, setAudioReady] = useState(false)
+  const [entering, setEntering] = useState(false)
+  const [scrubbing, setScrubbing] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const contextRef = useRef<AudioContext | null>(null)
   const masterRef = useRef<GainNode | null>(null)
@@ -66,6 +69,7 @@ export function AudioExperience() {
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
   const cueRef = useRef<AudioApi['playCue']>(() => undefined)
   const visualizerRef = useRef<HTMLCanvasElement>(null)
+  const gateRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY) as AudioChoice | null
@@ -167,6 +171,11 @@ export function AudioExperience() {
         context.fillStyle = `rgba(255, 221, 62, ${0.28 + value * 0.72})`
         context.fillRect(index * (barWidth + gap), height - barHeight, barWidth, barHeight)
       }
+      if (audioRef.current && Number.isFinite(audioRef.current.duration) && audioRef.current.duration > 0) {
+        const progress = audioRef.current.currentTime / audioRef.current.duration
+        context.fillStyle = 'rgba(255, 253, 248, .92)'
+        context.fillRect(Math.max(0, Math.min(width - 1, progress * width)), 0, window.devicePixelRatio, height)
+      }
       frame = requestAnimationFrame(draw)
     }
     frame = requestAnimationFrame(draw)
@@ -183,9 +192,29 @@ export function AudioExperience() {
     }
   }
 
+  const beginEntry = async (nextChoice: AudioChoice) => {
+    await enableAudio(nextChoice)
+    setEntering(true)
+    if (gateRef.current) {
+      gsap.timeline({ onComplete: () => setEntering(false) })
+        .to(gateRef.current, { backgroundColor: 'transparent', duration: 0.35, ease: 'power2.inOut' })
+        .to(gateRef.current.querySelector('.audio-gate__panel'), { yPercent: -9, scale: 1.04, autoAlpha: 0, duration: 0.72, ease: 'power4.inOut' }, 0.08)
+        .to(gateRef.current, { autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, 0.5)
+    }
+  }
+
+  const seekFromPointer = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const audio = audioRef.current
+    const canvas = visualizerRef.current
+    if (!audio || !canvas || !Number.isFinite(audio.duration) || audio.duration <= 0) return
+    const rect = canvas.getBoundingClientRect()
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width))
+    audio.currentTime = ratio * audio.duration
+  }
+
   return <>
     <audio ref={audioRef} src="/sounddelicious-portfolio-harmony-221983.mp3" loop preload="metadata" aria-hidden="true" />
-    {choice === null && <div className="audio-gate" role="dialog" aria-modal="true" aria-labelledby="audio-gate-title"><div className="audio-gate__panel"><span className="audio-gate__eyebrow">An interactive portfolio / 2026</span><h2 id="audio-gate-title">Enter with<br /><em>sound?</em></h2><p>A subtle score, clicks, and transition whooshes shape the experience. You can change this anytime.</p><div className="audio-gate__actions"><button type="button" onClick={() => void enableAudio('audio')}>Enter with audio <span>↘</span></button><button type="button" onClick={() => void enableAudio('silent')}>Enter silently <span>→</span></button></div><small>Your choice is saved on this device.</small></div></div>}
-    {choice !== null && <><canvas ref={visualizerRef} className={`audio-visualizer ${muted ? 'is-muted' : ''}`} aria-hidden="true" /><button type="button" className={`audio-toggle ${muted ? 'is-muted' : ''}`} onClick={() => void toggleAudio()} aria-label={muted ? 'Turn portfolio audio on' : 'Mute portfolio audio'}>{muted ? 'Audio off' : 'Audio on'} <span aria-hidden="true">{muted ? '×' : '◌'}</span></button></>}
+    {(choice === null || entering) && <div ref={gateRef} className={`audio-gate ${entering ? 'is-entering' : ''}`} role="dialog" aria-modal="true" aria-labelledby="audio-gate-title"><div className="audio-gate__panel"><span className="audio-gate__eyebrow">M/MC<span>.</span> / An interactive portfolio / 2026</span><h2 id="audio-gate-title">Enter with<br /><em>sound?</em></h2><p>A subtle score, clicks, and transition whooshes shape the experience. You can change this anytime.</p><div className="audio-gate__actions"><button type="button" onClick={() => void beginEntry('audio')}>Enter with audio <span>↘</span></button><button type="button" onClick={() => void beginEntry('silent')}>Enter silently <span>→</span></button></div><small>Your choice is saved on this device.</small></div></div>}
+    {choice !== null && <><canvas ref={visualizerRef} className={`audio-visualizer ${muted ? 'is-muted' : ''} ${scrubbing ? 'is-scrubbing' : ''}`} onPointerDown={(event) => { setScrubbing(true); event.currentTarget.setPointerCapture(event.pointerId); seekFromPointer(event) }} onPointerMove={(event) => { if (scrubbing) seekFromPointer(event) }} onPointerUp={() => setScrubbing(false)} onPointerCancel={() => setScrubbing(false)} onKeyDown={(event) => { const audio = audioRef.current; if (!audio || !Number.isFinite(audio.duration)) return; if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + (event.key === 'ArrowRight' ? 5 : -5))) } }} aria-label="Drag to scrub through the portfolio soundtrack" role="slider" tabIndex={0} aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} /><button type="button" className={`audio-toggle ${muted ? 'is-muted' : ''}`} onClick={() => void toggleAudio()} aria-label={muted ? 'Turn portfolio audio on' : 'Mute portfolio audio'}>{muted ? 'Audio off' : 'Audio on'} <span aria-hidden="true">{muted ? '×' : '◌'}</span></button></>}
   </>
 }

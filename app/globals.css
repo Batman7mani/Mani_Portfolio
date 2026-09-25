@@ -332,3 +332,13 @@ html.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
   .case-study-statement p { margin-top: 45px; font-size: clamp(38px, 11vw, 68px); line-height: 1; }
   .audio-visualizer { right: 14px; bottom: 52px; width: 88px; height: 22px; }
 }
+
+/* MMC in-site audio entry and soundtrack scrubber */
+.audio-gate { transition: background-color .4s ease; }
+.audio-gate.is-entering { cursor: progress; }
+.audio-gate__eyebrow span { color: var(--yellow); font-size: 15px; }
+.audio-gate__panel { transform-origin: center center; }
+.audio-visualizer { cursor: ew-resize; touch-action: none; border-bottom: 1px solid color-mix(in srgb, var(--yellow) 70%, transparent); padding-bottom: 3px; }
+.audio-visualizer.is-scrubbing { filter: brightness(1.3); transform: scaleY(1.14); transform-origin: bottom right; }
+.audio-visualizer:focus-visible { outline: 1px solid var(--yellow); outline-offset: 5px; }
+@media (max-width: 760px) { .audio-visualizer.is-scrubbing { transform: scaleY(1.08); } }
