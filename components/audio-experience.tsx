@@ -58,10 +58,14 @@ function createCueEngine(context: AudioContext, master: GainNode) {
 export function AudioExperience() {
   const [choice, setChoice] = useState<AudioChoice | null>(null)
   const [muted, setMuted] = useState(false)
+  const [audioReady, setAudioReady] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const contextRef = useRef<AudioContext | null>(null)
   const masterRef = useRef<GainNode | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
   const cueRef = useRef<AudioApi['playCue']>(() => undefined)
+  const visualizerRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY) as AudioChoice | null
@@ -81,9 +85,19 @@ export function AudioExperience() {
     const context = contextRef.current ?? new AudioContextConstructor()
     const master = masterRef.current ?? context.createGain()
     master.gain.value = 0.8
-    master.connect(context.destination)
+    if (!masterRef.current) master.connect(context.destination)
     contextRef.current = context
     masterRef.current = master
+    if (audioRef.current && !sourceRef.current) {
+      const source = context.createMediaElementSource(audioRef.current)
+      const analyser = context.createAnalyser()
+      analyser.fftSize = 128
+      analyser.smoothingTimeConstant = 0.82
+      source.connect(analyser).connect(context.destination)
+      sourceRef.current = source
+      analyserRef.current = analyser
+    }
+    setAudioReady(true)
     cueRef.current = (kind) => {
       if (context.state === 'suspended') void context.resume()
       const engine = createCueEngine(context, master)
@@ -121,6 +135,44 @@ export function AudioExperience() {
     }
   }, [choice])
 
+  useEffect(() => {
+    const canvas = visualizerRef.current
+    const analyser = analyserRef.current
+    if (!canvas || !analyser || choice !== 'audio') return
+    const context = canvas.getContext('2d')
+    if (!context) return
+    const values = new Uint8Array(analyser.frequencyBinCount)
+    let frame = 0
+    let lastFrame = 0
+    const draw = (time: number) => {
+      if (time - lastFrame < 33) {
+        frame = requestAnimationFrame(draw)
+        return
+      }
+      lastFrame = time
+      analyser.getByteFrequencyData(values)
+      const width = canvas.clientWidth * window.devicePixelRatio
+      const height = canvas.clientHeight * window.devicePixelRatio
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width
+        canvas.height = height
+      }
+      context.clearRect(0, 0, width, height)
+      const bars = 32
+      const gap = 2 * window.devicePixelRatio
+      const barWidth = (width - gap * (bars - 1)) / bars
+      for (let index = 0; index < bars; index += 1) {
+        const value = values[Math.floor(index * values.length / bars)] / 255
+        const barHeight = Math.max(2, value * height * 0.9)
+        context.fillStyle = `rgba(255, 221, 62, ${0.28 + value * 0.72})`
+        context.fillRect(index * (barWidth + gap), height - barHeight, barWidth, barHeight)
+      }
+      frame = requestAnimationFrame(draw)
+    }
+    frame = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(frame)
+  }, [choice, muted, audioReady])
+
   const toggleAudio = async () => {
     if (muted) {
       await enableAudio('audio')
@@ -134,6 +186,6 @@ export function AudioExperience() {
   return <>
     <audio ref={audioRef} src="/sounddelicious-portfolio-harmony-221983.mp3" loop preload="metadata" aria-hidden="true" />
     {choice === null && <div className="audio-gate" role="dialog" aria-modal="true" aria-labelledby="audio-gate-title"><div className="audio-gate__panel"><span className="audio-gate__eyebrow">An interactive portfolio / 2026</span><h2 id="audio-gate-title">Enter with<br /><em>sound?</em></h2><p>A subtle score, clicks, and transition whooshes shape the experience. You can change this anytime.</p><div className="audio-gate__actions"><button type="button" onClick={() => void enableAudio('audio')}>Enter with audio <span>↘</span></button><button type="button" onClick={() => void enableAudio('silent')}>Enter silently <span>→</span></button></div><small>Your choice is saved on this device.</small></div></div>}
-    {choice !== null && <button type="button" className={`audio-toggle ${muted ? 'is-muted' : ''}`} onClick={() => void toggleAudio()} aria-label={muted ? 'Turn portfolio audio on' : 'Mute portfolio audio'}>{muted ? 'Audio off' : 'Audio on'} <span aria-hidden="true">{muted ? '×' : '◌'}</span></button>}
+    {choice !== null && <><canvas ref={visualizerRef} className={`audio-visualizer ${muted ? 'is-muted' : ''}`} aria-hidden="true" /><button type="button" className={`audio-toggle ${muted ? 'is-muted' : ''}`} onClick={() => void toggleAudio()} aria-label={muted ? 'Turn portfolio audio on' : 'Mute portfolio audio'}>{muted ? 'Audio off' : 'Audio on'} <span aria-hidden="true">{muted ? '×' : '◌'}</span></button></>}
   </>
 }
